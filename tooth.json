@@ -1,0 +1,20 @@
+{
+    "format_version": 2,
+    "tooth": "github.com/HuoHuas001/HuHoBot-BDS",
+    "version": "0.0.7-hotfix",
+    "info": {
+        "name": "HuHoBot",
+        "description": "HuHoBot BDS Adapter",
+        "author": "HuoHuas001",
+        "tags": [
+            "platform:levilamina",
+            "type:mod"
+        ]
+    },
+    "dependencies": {
+        "github.com/LiteLDev/LeviLamina": ">=0.12.x",
+        "gitea.litebds.com/LiteLDev/legacy-script-engine-quickjs": ">=0.7.9"
+    },
+    "commands": {},
+    "files": {}
+}
