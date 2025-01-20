@@ -1,0 +1,11 @@
+{
+	"serverId": "829ccaa70d4c41b38a07c55c53d9ba17",
+	"hashKey": "1ca3785a1c2ad756269aa6d12647f55f8c39e2ca5a8441400c1c9e12536009e5",
+	"serverName": "server",
+	"addSimulatedPlayerTip": true,
+	"motdUrl": "play.easecation.net:19132",
+	"chatFormat": {
+		"game": "<{name}> {msg}",
+		"group": "群:<{nick}> {msg}"
+	}
+}
