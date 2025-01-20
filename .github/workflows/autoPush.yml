@@ -20,7 +20,7 @@ jobs:
       uses: actions/checkout@v3
 
     - name: copy files
-      working-directory: ${{env.GITHUB_WORKSPACE}}
+      working-directory: ${{ github.workspace }}
       run: |
         mkdir output/
         mkdir output/${{env.PLUGIN_NAME}}/
@@ -30,7 +30,7 @@ jobs:
       shell: bash
 
     - name: Pack Release
-      working-directory: ${{ env.GITHUB_WORKSPACE }}
+      working-directory: ${{ github.workspace }}
       if: startsWith(github.ref, 'refs/tags/')
       run: 
         Compress-Archive -Path output\${{ env.PLUGIN_NAME }}\ plugins.zip
