@@ -23,7 +23,6 @@ jobs:
       run: |
         mkdir output/
         mkdir output/${{env.PLUGIN_NAME}}/
-        mkdir output/${{env.PLUGIN_NAME}}//
         cp -f *.js output/${{env.PLUGIN_NAME}}/
         cp -f *.json output/${{env.PLUGIN_NAME}}/
 
