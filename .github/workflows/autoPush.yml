@@ -8,6 +8,7 @@ on:
 
 env:
   PLUGIN_NAME: HuHo_Bot
+  RepoName: 'HuoHuas001/HuHoBot-BDS'
 
 jobs:
   build:
@@ -44,4 +45,4 @@ jobs:
         draft: false
         prerelease: false
         files: |
-          HuHoBot-BDS-${{github.ref_name}}.zip
+          ${{ env.GITHUB_WORKSPACE }}\output\HuHoBot-BDS-${{github.ref_name}}.zip
