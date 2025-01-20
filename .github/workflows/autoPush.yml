@@ -33,12 +33,12 @@ jobs:
       working-directory: ${{ env.GITHUB_WORKSPACE }}
       if: startsWith(github.ref, 'refs/tags/')
       run: 
-        Compress-Archive -Path output\${{ env.PLUGIN_NAME }}\ HuHoBot-BDS-${{github.ref_name}}.zip
+        Compress-Archive -Path output\${{ env.PLUGIN_NAME }}\ plugins.zip
 
     - name: Upload PLUGIN
       uses: actions/upload-artifact@v4
       with:
-        name: plugins
+        name: HuHoBot-BDS-${{github.ref_name}}
         path: ${{ github.workspace }}\output\${{ env.PLUGIN_NAME }}
 
     - name: Release
@@ -47,6 +47,6 @@ jobs:
       with:
         body: 'RT'
         files: |
-          ${{ env.GITHUB_WORKSPACE }}\output\${{ env.PLUGIN_NAME }}\HuHoBot-BDS-${{github.ref_name}}.zip
+          ${{ env.GITHUB_WORKSPACE }}\output\${{ env.PLUGIN_NAME }}\plugins.zip
       env:
           GITHUB_REPOSITORY: ${{env.RepoName}}
