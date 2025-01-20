@@ -47,6 +47,6 @@ jobs:
       with:
         body: 'RT'
         files: |
-          ${{ env.GITHUB_WORKSPACE }}\output\${{ env.PLUGIN_NAME }}\plugins.zip
+          ${{ github.workspace }}\output\${{ env.PLUGIN_NAME }}\plugins.zip
       env:
           GITHUB_REPOSITORY: ${{env.RepoName}}
