@@ -2,7 +2,6 @@
 
 [![GitHub Release](https://img.shields.io/github/v/release/HuHoBot/BDSAdapter?style=for-the-badge)](https://github.com/HuHoBot/BDSAdapter/releases)
 [![License](https://img.shields.io/github/license/HuHoBot/BDSAdapter?style=for-the-badge)](https://github.com/HuHoBot/BDSAdapter/blob/main/LICENSE)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/HuHoBot/BDSAdapter/build.yml?style=for-the-badge)](https://github.com/HuHoBot/BDSAdapter/actions)
 
 专为BDS设计的下一代基岩版服务器管理解决方案，提供安全的无第三方QQ机器人依赖管理体验。
 
