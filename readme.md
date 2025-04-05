@@ -56,7 +56,7 @@
 ### 快速开始
 
 1. **访问 GitHub Releases 页面**：
-- 打开浏览器，访问 [HuHoBot-BDSAdapter Releases](https://github.com/HuHoBot/EndStoneAdapter/releases)
+- 打开浏览器，访问 [HuHoBot-BDSAdapter Releases](https://github.com/HuHoBot/BDSAdapter/releases)
 - 下载最新版本的 `HuHoBot-BDS-vx.x.x.zip` 文件
 
 2. **放置插件文件**：
