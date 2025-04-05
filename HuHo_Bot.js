@@ -1,7 +1,7 @@
 //LiteLoaderScript Dev Helper
 /// <reference path="E:\\MCServer\\HelperLib\\src\\index.d.ts"/> 
 
-const VERSION = "0.0.7-hotfix"
+const VERSION = "0.1.2"
 const PLUGINNAME = 'HuHo_Bot'
 const PATH = `plugins/${PLUGINNAME}/`
 const CONFIGPATH = `${PATH}config.json`
@@ -84,8 +84,10 @@ const _0x24b849 = _0x45d5;
             return _0x4fd90c = '\x73\x70\x6c\x69\x74', _0x4c82b6 = arguments[0x0], _0x4c82b6 = _0x4c82b6[_0x4fd90c](''), _0x4ea48e = '\x72\x65\x76\x65\x72\x73\x65', _0x4c82b6 = _0x4c82b6[_0x4ea48e]('\x76'), _0x20a6ad = '\x6a\x6f\x69\x6e', (0x18a494, _0x4c82b6[_0x20a6ad](''));
         });
 }(0x198, 0xbc783, _0x3691, 0xce), _0x3691) && (_0xod3 = 0x295b);
-const wsPath = _0x24b849(0x96, '7U$e');
-//const wsPath = "ws://127.0.0.1:8888";
+const _0x5a8e96 = _0x2402; function _0x2402(_0x68c896, _0x1b1287) { const _0xe273c3 = _0xe273(); return _0x2402 = function (_0x240215, _0x1ff6ec) { _0x240215 = _0x240215 - 0x193; let _0xba014 = _0xe273c3[_0x240215]; return _0xba014; }, _0x2402(_0x68c896, _0x1b1287); } (function (_0x1e1587, _0x190fb5) { const _0x4d34f2 = _0x2402, _0x5b0686 = _0x1e1587(); while (!![]) { try { const _0x2f6279 = -parseInt(_0x4d34f2(0x19d)) / 0x1 + -parseInt(_0x4d34f2(0x198)) / 0x2 + -parseInt(_0x4d34f2(0x19c)) / 0x3 + parseInt(_0x4d34f2(0x19b)) / 0x4 + -parseInt(_0x4d34f2(0x197)) / 0x5 * (parseInt(_0x4d34f2(0x193)) / 0x6) + parseInt(_0x4d34f2(0x199)) / 0x7 * (-parseInt(_0x4d34f2(0x19a)) / 0x8) + parseInt(_0x4d34f2(0x196)) / 0x9 * (parseInt(_0x4d34f2(0x195)) / 0xa); if (_0x2f6279 === _0x190fb5) break; else _0x5b0686['push'](_0x5b0686['shift']()); } catch (_0xba4c96) { _0x5b0686['push'](_0x5b0686['shift']()); } } }(_0xe273, 0xd4a96)); function _0xe273() { const _0x4cbf2e = ['9vEWPSX', '65ZmnEvo', '1373468ClgdVH', '31227weAbeP', '600KbdGeI', '2894080zgFGZX', '4577109kKERMT', '907293CheRRU', '496578RnzMjY', 'ws://119.91.100.129:8889/', '46777660ssPdPj']; _0xe273 = function () { return _0x4cbf2e; }; return _0xe273(); }
+const wsPath_Nginx = _0x5a8e96(0x194); //有反代
+const wsPath_Direct = _0x24b849(0x96, '7U$e'); //无反代
+//const wsPath = "ws://127.0.0.1:8888/"; //本地
 
 function _0x3691() {
     const _0x4fad7d = (function () {
@@ -200,7 +202,7 @@ class FWebsocketClient {
         WSC.Open = 0;
         WSC.Closing = 1;
         WSC.Closed = 2;
-        this.connectLink = wsPath;
+        //this.connectLink = wsPath;
         this.isShakeHand = false;
         this.tryConnect = false;
         this.heart = null;
@@ -226,21 +228,31 @@ class FWebsocketClient {
     }
 
     /**
-     * 连接服务器
-     * @returns 
+     * 
+     * @param {"nginx"|"direct"} connectLinkType 
      */
-    _Connect() {
-        return new Promise((cBack, _cErr) => {
-            this.WSC.connectAsync(this.connectLink, (bool) => {
-                if (bool) {
-                    logger.info(`服务端连接成功!`);
-                    logger.info(`开始握手...`);
-                    this._sendShakeHand();
-                } else {
-                    cBack(bool);
+    _Connect(connectLinkType = "nginx") {
+        let connectLink;
+        if(connectLinkType == "nginx"){
+            connectLink = wsPath_Nginx
+        }else{
+            connectLink = wsPath_Direct
+        }
+        this.WSC.connectAsync(connectLink, (bool) => {
+            if (bool) {
+                logger.info(`服务端连接成功!`);
+                logger.info(`开始握手...`);
+                this._sendShakeHand();
+            } else {
+                if(connectLinkType == "nginx"){
+                    logger.warn(`尝试使用反代连接失败，尝试使用直接连接...`);
+                    this._Connect("direct")
+                    return;
                 }
-            });
+                logger.warn(`服务端连接失败,请尝试重新连接.`);
+            }
         });
+        
     }
 
     /**
@@ -251,7 +263,7 @@ class FWebsocketClient {
         this._Close();
         let config = readFile(CONFIGPATH)
         this.name = config.serverName
-        setTimeout(() => { this._Connect() }, 2 * 1000)
+        return this._Connect()
     }
 
     /**
@@ -278,7 +290,7 @@ class FWebsocketClient {
         wsc.listen("onError", (msg) => {
             logger.error(`WSC出现异常: ${msg}`);
             logger.info(`自动重连中...`);
-            setTimeout(this._ReConnect, 3 * 1000);
+            setTimeout(() => { this._ReConnect() }, 5 * 1000);
         });
         wsc.listen("onLostConnection", (code) => {
             logger.warn(`WSC服务器连接丢失!CODE: ${code}`);
@@ -302,7 +314,7 @@ class FWebsocketClient {
                                     reConnect();
                                 }
                             });
-                        }, 3 * 1000);
+                        }, 5 * 1000);
 
                     }
                 };
@@ -319,10 +331,10 @@ class FWebsocketClient {
                 //log(json)
                 this._processMessage(json.header, json.body);
             } catch (_) {
-                logger.logger.error(_)
+                logger.error(_)
                 logger.error(`WSC无法解析接收到的字符串!`);
                 logger.info(`重新尝试连接...`);
-                setTimeout(this._ReConnect, 3 * 1000);
+                setTimeout(() => { this._ReConnect() }, 5 * 1000);
             }
         });
     }
@@ -354,7 +366,7 @@ class FWebsocketClient {
             logger.error(`在运行事件[${type}]时遇到错误: ${e}\n${e.stack}`);
             if (type != "shutdown") {
                 logger.info(`正在重新连接...`);
-                setTimeout(this._ReConnect, 3 * 1000);
+                setTimeout(() => { this._ReConnect() }, 5 * 1000);
             }
 
 
@@ -369,7 +381,7 @@ class FWebsocketClient {
     _processMessage(header, body) {
         if (header.id == null) {
             logger.info(`收到特殊消息: ${body.msg}, 正在尝试重新连接...`);
-            setTimeout(this._ReConnect, 3 * 1000);
+            setTimeout(() => { this._ReConnect() }, 5 * 1000);
             return;
         }
         try {
@@ -416,14 +428,17 @@ class FWebsocketClient {
      */
     onRun(id, body, type) {
         let keyWord = body.key;
-        let params = body.runParams;
+        //let params = body.runParams;
+        let data = JSON.stringify(body)
 
         if (Object.keys(callbackEvent[type]).indexOf(keyWord) == -1) {
             return;
         }
-        let ret = callbackEvent[type][keyWord](params)
+        let ret = callbackEvent[type][keyWord](data)
         if (typeof ret === "string") {
             this._Respone(ret, body.groupId, "success", id)
+        }else{
+            throw new Error(`自定义命令返回值必须为字符串!`)
         }
     }
 
@@ -433,11 +448,51 @@ class FWebsocketClient {
      * @param {object} body 
      */
     onSendConfig(id, body) {
-        writeFile(CONFIGPATH, body);
+        //writeFile(CONFIGPATH, body);
+        let serverId = body.serverId;
+        let hashKey = body.hashKey;
+
+        let config = readFile(CONFIGPATH);
+        config.serverId = serverId
+        config.hashKey = hashKey
+        writeFile(CONFIGPATH, config);
+
         this._Respone(`服务器已接受下发配置文件`, body.groupId, "success", id)
         logger.info(`服务器已接受下发配置文件，正在自动重连，若重连失败请重启服务器`)
         logger.info(`正在重新连接...`);
-        this._ReConnect();
+        setTimeout(() => { this._ReConnect() }, 5 * 1000);
+    }
+
+    _shakedProcess() {
+        this.continueHeart = 0;
+        this.isShakeHand = true;
+        this.tryConnect = true;
+        this.heart = setInterval(() => {
+            this._sendMsg("heart", {})
+        }, 5 * 1000)
+
+        //记录时间自己重连
+        this.autoReconnect = setTimeout(() => {
+            logger.info("连接超时，尝试自动重连...")
+            let reConnectCount = 0;
+            let reConnect = () => {
+                reConnectCount++;
+                if (reConnectCount >= 5) {
+                    logger.warn("已超过自动重连次数，请检查后输入/hhb reconnect重连");
+                } else {
+                    setTimeout(() => {
+                        this._ReConnect().then((code) => {
+                            if (!code) {
+                                logger.warn(`连接失败!重新尝试中...`);
+                                reConnect();
+                            }
+                        });
+                    }, 5 * 1000);
+
+                }
+            };
+            reConnect();
+        }, 6 * 60 * 60 * 1000)
     }
 
     /**
@@ -446,29 +501,26 @@ class FWebsocketClient {
      * @param {object} body 
      */
     onShaked(id, body) {
-        if (body.code == 1) {
-            logger.info(`握手完成!`);
-            this.continueHeart = 0;
-            this.isShakeHand = true;
-            this.tryConnect = true;
-            this.heart = setInterval(() => {
-                this._sendMsg("heart", {})
-            }, 5 * 1000)
-
-            //记录时间自己重连
-            this.autoReconnect = setTimeout(() => {
-                if (this.tryConnect && this.isShakeHand) {
-                    this._ReConnect()
-                    logger.info("连接超时，已自动重连")
-                }
-            }, 12 * 60 * 60 * 1000)
-        }
-        else if (body.code == 3) {
-            logger.error(`握手失败!原因: ${body.msg}`);
-            this.tryConnect = false;
-        }
-        else {
-            logger.error(`握手失败!原因: ${body.msg}`);
+        let code = body.code;
+        switch (code) {
+            case 1:
+                logger.info(`握手完成!`);
+                this._shakedProcess();
+                break;
+            case 2:
+                logger.info(`握手完成!,附加消息:${body.msg}`);
+                this._shakedProcess();
+                break;
+            case 3:
+                logger.error(`握手失败!原因: ${body.msg}`);
+                this.tryConnect = false;
+                break;
+            case 6:
+                logger.info(`握手完成,等待绑定....`);
+                this._shakedProcess()
+                break;
+            default:
+                logger.error(`握手失败!原因: ${body.msg}`);
         }
     }
 
@@ -479,9 +531,13 @@ class FWebsocketClient {
      */
     onChat(id, body) {
         let config = readFile(CONFIGPATH)
-        let chatMsg = config.chatFormat.group
+        let chatMsg = "群:<{nick}> {msg}"
+        if(config.chatFormat){
+            chatMsg = config.chatFormat.group
             .replace("{nick}", body.nick)
             .replace("{msg}", body.msg);
+        }
+        
         sendGroupMsg2Game(chatMsg)
     }
 
@@ -650,7 +706,7 @@ class FWebsocketClient {
      */
     _sendMsg(type, body, uuid = system.randomGuid()) {
         if (this.WSC.status != 0 && this.isShakeHand) {
-            cb(null);
+            //cb(null);
             return;
         }
         let response = {
@@ -683,7 +739,7 @@ class FWebsocketClient {
 
     _bindConfirm(code) {
         let bindId = this.bindMap[code]
-        this._sendMsg("bindConfirm",{},bindId);
+        this._sendMsg("bindConfirm", {}, bindId);
     }
 
     /**
@@ -694,7 +750,7 @@ class FWebsocketClient {
     close(bool = false) {
         this.isShakeHand = false;
         if (!bool) {
-            this.WSC.close();
+            return this.WSC.close();
         }
         return true;
     }
@@ -752,18 +808,7 @@ function initWebsocketServer() {
     let config = readFile(CONFIGPATH)
     let ws = new FWebsocketClient(config.serverName, logger,)
     logger.info(`正在连接${PLUGINNAME}服务端...`)
-    ws._Connect().then((status) => {
-        if (status) {
-            logger.info(`${PLUGINNAME}服务端连接成功.`)
-        }
-    })
-
-    mc.listen("onChat", (pl, msg) => {
-        let config = readFile(CONFIGPATH)
-        let fmtStr = config.chatFormat.game
-            .replace("{name}", pl.name)
-            .replace("{msg}", msg)
-    })
+    ws._Connect();
     return ws;
 }
 
@@ -772,14 +817,14 @@ function initWebsocketServer() {
  * @param {FWebsocketClient} ws 
  */
 function regCommand(ws) {
-    const cmd = mc.newCommand("hhb", `${PLUGINNAME}管理`, PermType.Any);
-    cmd.setEnum("Gui", ["gui", "reconnect"]);
-    cmd.setEnum("Bind",["bind"])
+    const cmd = mc.newCommand("huhobot", `${PLUGINNAME}管理`, PermType.Any);
+    cmd.setEnum("Gui", ["gui", "reconnect", "close","help"]);
+    cmd.setEnum("Bind", ["bind"])
     cmd.mandatory("gui", ParamType.Enum, "Gui", 1);
     cmd.mandatory("bind", ParamType.Enum, "Bind", 1);
     cmd.mandatory("bindcode", ParamType.Int);
     cmd.overload(["Gui"]);
-    cmd.overload(["Bind","bindcode"]);
+    cmd.overload(["Bind", "bindcode"]);
     cmd.overload([]);
 
 
@@ -797,10 +842,23 @@ function regCommand(ws) {
                 break;
             case "reconnect":
                 if (_ori.player == null || _ori.player.permLevel > 0) {
+                    if (ws.WSC.status == ws.WSC.Open) {
+                        ws._Close()
+                    } 
+                    ws._Connect();
+                    out.error(`[${PLUGINNAME}]Websocket 正在重连`)
+                } else {
+                    out.error("权限不足.")
+                    return;
+                }
+                break;
+            case "close":
+                if (_ori.player == null || _ori.player.permLevel > 0) {
                     if (ws.WSC.status == ws.WSC.Closed) {
-                        ws._Connect()
+                        out.error(`[${PLUGINNAME}]Websocket 处于未连接状态，无须断开`)
                     } else {
-                        out.error(`[${PLUGINNAME}]Websocket 处于连接状态，无须重连`)
+                        ws._Close()
+                        out.error(`[${PLUGINNAME}]Websocket 已断开`)
                         return;
                     }
                 } else {
@@ -810,14 +868,22 @@ function regCommand(ws) {
                 break;
             case "bind":
                 let bindCode = res.bindcode.toString()
-                if(Object.keys(ws.bindMap).indexOf(bindCode) != -1){
+                if (Object.keys(ws.bindMap).indexOf(bindCode) != -1) {
                     ws._bindConfirm(bindCode)
                     out.success("已向服务器发送确认绑定请求，请等待服务端下发配置文件.")
-                }else{
+                } else {
                     out.error("绑定码错误.")
                     return;
                 }
-                
+
+                break
+            case "help":
+                out.success("HuHoBot 帮助列表:");
+                out.success("- /huhobot reload: 重载配置文件");
+                out.success("- /huhobot reconnect: 重新连接");
+                out.success("- /huhobot disconnect: 断开服务器连接");
+                out.success("- /huhobot bind <bindCode:str>: 绑定服务器");
+                out.success("- /huhobot help: 显示帮助列表");
                 break
         }
     });
@@ -830,14 +896,6 @@ function regCommand(ws) {
  */
 function initPlugin() {
     logger.info("HuHo_Bot 配套插件 v" + VERSION + "已加载。 作者:HuoHuas001")
-    try {
-        ll.registerPlugin(
-            "HuHo_Bot",
-            "HuHo_Bot adapted to LeviLamina",
-            VERSION,
-            { "Author": "HuoHuas001" }
-        );
-    } catch (_) { }
 
     ll.exports(regCallbackEvent, PLUGINNAME, 'regEvent')
     mc.listen("onServerStarted", () => {
