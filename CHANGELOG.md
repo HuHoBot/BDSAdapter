@@ -1,4 +1,3 @@
-# HuHoBot-BDS-Adapter v0.1.3
-1. 修改`hhb`指令为`huhobot`
-2. 添加`/huhobot help`
-3. 修改是否使用反代的判断逻辑
+# HuHoBot-BDS-Adapter v0.1.4
+- 修改Websocket连接为同步连接
+- 将握手信息输出改为握手后等待连接时输出
