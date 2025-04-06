@@ -1,7 +1,7 @@
 //LiteLoaderScript Dev Helper
 /// <reference path="E:\\MCServer\\HelperLib\\src\\index.d.ts"/> 
 
-const VERSION = "0.1.3"
+const VERSION = "0.1.4"
 const PLUGINNAME = 'HuHo_Bot'
 const PATH = `plugins/${PLUGINNAME}/`
 const CONFIGPATH = `${PATH}config.json`
@@ -231,27 +231,27 @@ class FWebsocketClient {
      * 
      * @param {"nginx"|"direct"} connectLinkType 
      */
-    _Connect(connectLinkType = "nginx") {
+    _Connect(connectLinkType = "direct") {
         let connectLink;
         if(connectLinkType == "nginx"){
             connectLink = wsPath_Nginx
         }else{
             connectLink = wsPath_Direct
         }
-        this.WSC.connectAsync(connectLink, (bool) => {
-            if (bool) {
-                logger.info(`服务端连接成功!`);
-                logger.info(`开始握手...`);
-                this._sendShakeHand();
-            } else {
-                if(connectLinkType == "nginx"){
-                    logger.warn(`尝试使用反代连接失败，尝试使用直接连接...`);
-                    this._Connect("direct")
-                    return;
-                }
-                logger.warn(`服务端连接失败,请尝试重新连接.`);
+        this.WSC.connect(connectLink)
+        if (this.WSC.status == this.WSC.Open) {
+            logger.info(`服务端连接成功!`);
+            logger.info(`开始握手...`);
+            this._sendShakeHand();
+        } else {
+            if(connectLinkType == "direct"){
+                logger.warn(`尝试使用直接连接失败，尝试使用反代连接...`);
+                this._Connect("nginx")
+                return;
             }
-        });
+            logger.warn(`服务端连接失败,请尝试重新连接.`);
+        }
+        
         
     }
 
@@ -260,10 +260,13 @@ class FWebsocketClient {
      * @returns 
      */
     _ReConnect() {
-        this._Close();
-        let config = readFile(CONFIGPATH)
-        this.name = config.serverName
-        return this._Connect()
+        return new Promise((resolve, reject) => {
+            this._Close();
+            let config = readFile(CONFIGPATH)
+            this.name = config.serverName
+            return this._Connect()
+        })
+        
     }
 
     /**
@@ -305,7 +308,7 @@ class FWebsocketClient {
                 let reConnect = () => {
                     reConnectCount++;
                     if (reConnectCount >= 5) {
-                        logger.warn("已超过自动重连次数，请检查后输入/hhb reconnect重连");
+                        logger.warn("已超过自动重连次数，请检查后输入/huhobot reconnect重连");
                     } else {
                         setTimeout(() => {
                             this._ReConnect().then((code) => {
@@ -415,7 +418,7 @@ class FWebsocketClient {
      */
     onBindRequest(id, body, type) {
         let bindCode = body.bindCode
-        logger.info(`收到一个新的绑定请求，如确认绑定，请输入"/hhb bind ${bindCode}"来进行确认`)
+        logger.info(`收到一个新的绑定请求，如确认绑定，请输入"/huhobot bind ${bindCode}"来进行确认`)
         this.bindMap[bindCode] = id
     }
 
@@ -478,7 +481,7 @@ class FWebsocketClient {
             let reConnect = () => {
                 reConnectCount++;
                 if (reConnectCount >= 5) {
-                    logger.warn("已超过自动重连次数，请检查后输入/hhb reconnect重连");
+                    logger.warn("已超过自动重连次数，请检查后输入/huhobot reconnect重连");
                 } else {
                     setTimeout(() => {
                         this._ReConnect().then((code) => {
@@ -517,6 +520,10 @@ class FWebsocketClient {
                 break;
             case 6:
                 logger.info(`握手完成,等待绑定....`);
+                let config = readFile(CONFIGPATH)
+                if (config.hashKey == null || config.hashKey == '') {
+                    logger.warn(`服务器尚未在机器人进行绑定，请在群内输入"/绑定 ${config.serverId}"来绑定`)
+                }
                 this._shakedProcess()
                 break;
             default:
@@ -896,21 +903,14 @@ function regCommand(ws) {
  */
 function initPlugin() {
     logger.info("HuHo_Bot 配套插件 v" + VERSION + "已加载。 作者:HuoHuas001")
-
     ll.exports(regCallbackEvent, PLUGINNAME, 'regEvent')
-    mc.listen("onServerStarted", () => {
-        let config = readFile(CONFIGPATH)
-        if (config.serverId == null || config.serverId == '') {
-            config.serverId = system.randomGuid()
-            writeFile(CONFIGPATH, config)
-        }
-        config = readFile(CONFIGPATH)
-        if (config.hashKey == null || config.hashKey == '') {
-            logger.warn(`服务器尚未在机器人进行绑定，请在群内输入"/绑定 ${config.serverId}"来绑定`)
-        }
-        let ws = initWebsocketServer()
-        regCommand(ws)
-    })
+    let config = readFile(CONFIGPATH)
+    if (config.serverId == null || config.serverId == '') {
+        config.serverId = system.randomGuid()
+        writeFile(CONFIGPATH, config)
+    }
+    let ws = initWebsocketServer()
+    regCommand(ws)
 }
 
 initPlugin()
