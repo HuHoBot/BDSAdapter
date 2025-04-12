@@ -1,7 +1,8 @@
 //LiteLoaderScript Dev Helper
 /// <reference path="E:\\MCServer\\HelperLib\\src\\index.d.ts"/> 
 
-const VERSION = "0.1.4"
+const VERSION = "0.1.5"
+const CONFIG_VERSION = 2
 const PLUGINNAME = 'HuHo_Bot'
 const PATH = `plugins/${PLUGINNAME}/`
 const CONFIGPATH = `${PATH}config.json`
@@ -144,9 +145,14 @@ function writeFile(file, data) {
  */
 function paginateArray(array, itemsPerPage) {
     let pages = [];
-    for (let i = 0; i < array.length; i += itemsPerPage) {
-        pages.push(array.slice(i, i + itemsPerPage));
+    try{
+        for (let i = 0; i < array.length; i += itemsPerPage) {
+            pages.push(array.slice(i, i + itemsPerPage));
+        }
+    }catch(_){
+        pages.push("白名单解析出现异常,请管理员检查白名单")
     }
+    
     return pages;
 }
 
@@ -231,27 +237,27 @@ class FWebsocketClient {
      * 
      * @param {"nginx"|"direct"} connectLinkType 
      */
-    _Connect(connectLinkType = "direct") {
+    _Connect(connectLinkType = "nginx") {
         let connectLink;
         if(connectLinkType == "nginx"){
             connectLink = wsPath_Nginx
         }else{
             connectLink = wsPath_Direct
         }
-        this.WSC.connect(connectLink)
-        if (this.WSC.status == this.WSC.Open) {
-            logger.info(`服务端连接成功!`);
-            logger.info(`开始握手...`);
-            this._sendShakeHand();
-        } else {
-            if(connectLinkType == "direct"){
-                logger.warn(`尝试使用直接连接失败，尝试使用反代连接...`);
-                this._Connect("nginx")
-                return;
+        this.WSC.connectAsync(connectLink, (bool) => {
+            if (bool) {
+                logger.info(`服务端连接成功!`);
+                logger.info(`开始握手...`);
+                this._sendShakeHand();
+            } else {
+                if(connectLinkType == "nginx"){
+                    logger.warn(`尝试使用反代连接失败，尝试使用直接连接...`);
+                    this._Connect("direct")
+                    return;
+                }
+                logger.warn(`服务端连接失败,请尝试重新连接.`);
             }
-            logger.warn(`服务端连接失败,请尝试重新连接.`);
-        }
-        
+        });
         
     }
 
@@ -260,13 +266,10 @@ class FWebsocketClient {
      * @returns 
      */
     _ReConnect() {
-        return new Promise((resolve, reject) => {
-            this._Close();
-            let config = readFile(CONFIGPATH)
-            this.name = config.serverName
-            return this._Connect()
-        })
-        
+        this._Close();
+        let config = readFile(CONFIGPATH)
+        this.name = config.serverName
+        return this._Connect()
     }
 
     /**
@@ -398,8 +401,8 @@ class FWebsocketClient {
                 case "queryOnline": this.onQueryOnline(header.id, body); break;
                 case "shutdown": this.onShutDown(header.id, body); break;
                 case "sendConfig": this.onSendConfig(header.id, body); break;
-                case "run":
-                case "runAdmin": this.onRun(header.id, body, header.type); break;
+                case "run": this.onRun(header.id, body, header.type,false); break;
+                case "runAdmin": this.onRun(header.id, body, header.type,true); break;
                 case "bindRequest": this.onBindRequest(header.id, body, header.type); break;
             }
         } catch (e) {
@@ -428,12 +431,41 @@ class FWebsocketClient {
      * @param {string} id 
      * @param {object} body 
      * @param {string} type 
+     * @param {boolean} isAdmin
      */
-    onRun(id, body, type) {
+    onRun(id, body, type,isAdmin) {
         let keyWord = body.key;
-        //let params = body.runParams;
-        let data = JSON.stringify(body)
+        let params = body.runParams;
 
+        //配置文件自定义命令
+        let config = readFile(CONFIGPATH);
+        let customCommand = config.customCommand;
+        for(let i=0;i<customCommand.length;i++){
+            let command = customCommand[i]
+            if(command.key == keyWord){
+                //判断是否是管理员
+                if(command.permission > 0 && !isAdmin){
+                    this._Respone(`权限不足，若您是管理员，请使用/管理员执行`, body.groupId, "error", id)
+                    return;
+                }
+                //格式化参数
+                let cmd = command.command;
+                for(let j=0;j<params.length;j++){
+                    let param = params[j]
+                    cmd = cmd.replace(`&${j+1}`,param)
+                }
+                //执行
+                let outputCmd = mc.runcmdEx(cmd);
+                if (outputCmd.success) {
+                    this._Respone("执行成功:\n" + outputCmd.output, body.groupId, "success", id)
+                } else {
+                    this._Respone("执行失败:\n" + outputCmd.output, body.groupId, "error", id)
+                }
+            }
+        }
+
+        //插件自定义命令
+        let data = JSON.stringify(body)
         if (Object.keys(callbackEvent[type]).indexOf(keyWord) == -1) {
             return;
         }
@@ -520,11 +552,11 @@ class FWebsocketClient {
                 break;
             case 6:
                 logger.info(`握手完成,等待绑定....`);
+                this._shakedProcess()
                 let config = readFile(CONFIGPATH)
                 if (config.hashKey == null || config.hashKey == '') {
                     logger.warn(`服务器尚未在机器人进行绑定，请在群内输入"/绑定 ${config.serverId}"来绑定`)
                 }
-                this._shakedProcess()
                 break;
             default:
                 logger.error(`握手失败!原因: ${body.msg}`);
@@ -660,19 +692,39 @@ class FWebsocketClient {
      */
     onQueryOnline(id, body) {
         let config = readFile(CONFIGPATH)
+
+        let server_ip = config.motd.server_ip;
+        let server_port = config.motd.server_port;
+        let api = config.motd.api;
+        let text = config.motd.text
+        let output_online_list = config.motd.output_online_list;
+        let post_img = config.motd.post_img;
+
+        //拼接在线列表
         let onlineNameString = ""
         let online = mc.getOnlinePlayers();
-        for (let i = 0; i < online.length; i++) {
-            let simulated = ""
-            if (online[i].isSimulatedPlayer() && config.addSimulatedPlayerTip) {
-                simulated = "(假人)"
-            }
-            onlineNameString += online[i].name + simulated;
-            if (i < online.length - 1) {
+        if(output_online_list){
+            for (let i = 0; i < online.length; i++) {
+                let simulated = ""
+                if (online[i].isSimulatedPlayer() && config.addSimulatedPlayerTip) {
+                    simulated = "(假人)"
+                }
+                onlineNameString += online[i].name + simulated;
                 onlineNameString += "\u200B"
             }
         }
-        this._sendMsg("queryOnline", { "list": { "msg": onlineNameString, "url": config.motdUrl } }, id)
+        text = text.replace("{online}", online.length)
+        onlineNameString += text
+
+        this._sendMsg("queryOnline", {
+            "list": { 
+                "msg": onlineNameString, 
+                "url": `${server_ip}:${server_port}`,
+                "imgUrl": api.replace("{server_ip}", server_ip).replace("{server_port}", server_port),
+                "post_img": post_img,
+                "serverType": "bedrock",
+            } 
+        }, id)
     }
 
     /**
@@ -897,20 +949,73 @@ function regCommand(ws) {
     cmd.setup();
 }
 
+function convertConfig() {
+    try {
+        // 路径配置
+        const oldConfig = readFile(CONFIGPATH)
+        writeFile(`${PATH}config_old.json`,oldConfig)
+        logger.info("配置文件已备份为 config_old.json.")
+        
+        // 创建新配置结构
+        const newConfig = {
+            serverId: oldConfig.serverId,
+            hashKey: oldConfig.hashKey,
+            serverName: oldConfig.serverName,
+            addSimulatedPlayerTip: oldConfig.addSimulatedPlayerTip,
+            chatFormat: oldConfig.chatFormat,
+            motd: parseMotd(oldConfig.motdUrl),
+            customCommand: [], // 初始化为空数组
+            version: 2
+        };
+
+        // 写入新配置
+        writeFile(CONFIGPATH, newConfig);
+        logger.info("配置文件已由 v1 升级为 v2.")
+
+        // 处理 MOTD 转换
+        function parseMotd(motdUrl) {
+            const [server_ip, server_port] = motdUrl.split(':');
+            return {
+                server_ip,
+                server_port: parseInt(server_port),
+                api: `https://motdbe.blackbe.work/status_img?host={server_ip}:{server_port}`,
+                text: "共{online}人在线",
+                output_online_list: true,
+                post_img: true
+            };
+        }
+    } catch (error) {
+        logger.error('配置文件v1转至v2失败:', error.message);
+    }
+}
+
 
 /**
  * 初始化插件
  */
 function initPlugin() {
     logger.info("HuHo_Bot 配套插件 v" + VERSION + "已加载。 作者:HuoHuas001")
-    ll.exports(regCallbackEvent, PLUGINNAME, 'regEvent')
+
+    //检测是否需要更新配置文件
     let config = readFile(CONFIGPATH)
+    logger.info("配置文件版本为：" + config.version)
+    if (config.version == null || config.version < CONFIG_VERSION) {
+        logger.info("配置文件版本过低，正在升级...")
+        convertConfig()
+    }
+
+    //检测serverId是否生成
+    config = readFile(CONFIGPATH)
     if (config.serverId == null || config.serverId == '') {
         config.serverId = system.randomGuid()
         writeFile(CONFIGPATH, config)
     }
-    let ws = initWebsocketServer()
-    regCommand(ws)
+
+    ll.exports(regCallbackEvent, PLUGINNAME, 'regEvent')
+    mc.listen("onServerStarted", () => {
+        let ws = initWebsocketServer()
+        regCommand(ws)
+    })
 }
 
 initPlugin()

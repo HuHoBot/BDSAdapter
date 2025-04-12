@@ -1,0 +1,73 @@
+name: Package and Release
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+    paths:
+      - 'HuHo_Bot.js'
+      - 'config.json.template'
+      - 'manifest.json'
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  package:
+    name: Create Plugin Package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup workspace
+        run: |
+          mkdir -p HuHoBot
+          cp HuHo_Bot.js HuHoBot/
+          cp config.json.template HuHoBot/
+          cp manifest.json HuHoBot/
+          
+          echo '{}' > HuHoBot/blockMsg.json
+          mv HuHoBot/config.json.template HuHoBot/config.json
+
+      - name: Zip package
+        run: |
+          zip -r HuHoBot-${{ github.sha }}.zip HuHoBot/
+          echo "PACKAGE_NAME=HuHoBot-${{ github.sha }}.zip" >> $GITHUB_ENV
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-package
+          path: ${{ env.PACKAGE_NAME }}
+
+  release:
+    name: Create Release
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-package
+          path: artifacts
+
+      - name: Rename package
+        run: |
+          old_name=$(ls artifacts/HuHoBot-*.zip)
+          new_name="HuHoBot-BDS-${{ github.ref_name }}.zip"
+          mv "$old_name" "artifacts/$new_name"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: HuHoBot ${{ github.ref_name }}
+          files: |
+            artifacts/HuHoBot-BDS-${{ github.ref_name }}.zip
