@@ -244,20 +244,19 @@ class FWebsocketClient {
         }else{
             connectLink = wsPath_Direct
         }
-        this.WSC.connectAsync(connectLink, (bool) => {
-            if (bool) {
-                logger.info(`服务端连接成功!`);
-                logger.info(`开始握手...`);
-                this._sendShakeHand();
-            } else {
-                if(connectLinkType == "nginx"){
-                    logger.warn(`尝试使用反代连接失败，尝试使用直接连接...`);
-                    this._Connect("direct")
-                    return;
-                }
-                logger.warn(`服务端连接失败,请尝试重新连接.`);
+        let isSuccess = this.WSC.connect(connectLink);
+        if (isSuccess) {
+            logger.info(`服务端连接成功!`);
+            logger.info(`开始握手...`);
+            this._sendShakeHand();
+        } else {
+            if(connectLinkType == "nginx"){
+                logger.warn(`尝试使用反代连接失败，尝试使用直接连接...`);
+                this._Connect("direct")
+                return;
             }
-        });
+            logger.warn(`服务端连接失败,请尝试重新连接.`);
+        }
         
     }
 
