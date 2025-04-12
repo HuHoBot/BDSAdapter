@@ -1,4 +1,3 @@
-# HuHoBot-BDS-Adapter v0.1.5
+# HuHoBot-BDS-Adapter v0.1.5-hotfix
 
-- feat: 配置文件新增`customCommand`字段
-- modify: 修改配置文件`motd`字段，使其自定义丰富的信息
+- fix: 修复异步连接无法正常触发握手的问题
