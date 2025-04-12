@@ -64,10 +64,43 @@ jobs:
           new_name="HuHoBot-BDS-${{ github.ref_name }}.zip"
           mv "$old_name" "artifacts/$new_name"
 
+      - name: Extract release info
+        id: changelog
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          
+          # 修复：使用正确的标签格式匹配
+          VERSION=${TAG_NAME#v}  # 去除v前缀（如果CHANGELOG使用纯版本号）
+          
+          CHANGELOG_CONTENT=$(awk -v version="[v$VERSION]" '
+            BEGIN {RS="## "; FS="\n"}
+            $1 ~ version {
+              sub(/\[.*\] - .*\n/, "")
+              gsub(/`/, "\\`")
+              gsub(/"/, "\\\"")
+              print
+              exit
+            }
+          ' CHANGELOG.md)
+
+          EOF_MARKER=$(openssl rand -base64 12)
+          echo "body<<$EOF_MARKER" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+          echo "$EOF_MARKER" >> $GITHUB_OUTPUT
+
+          # 添加标签名输出
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
           name: HuHoBot ${{ github.ref_name }}
+          body: |
+            ${{ steps.changelog.outputs.body }}
+
+            ### 构建信息
+            - 构建时间: ${{ github.run_created_at }}
+            - 提交哈希: [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
           files: |
             artifacts/HuHoBot-BDS-${{ github.ref_name }}.zip
