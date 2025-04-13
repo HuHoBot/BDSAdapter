@@ -34,7 +34,7 @@ jobs:
 
       - name: Zip package
         run: |
-          zip -r HuHoBot-${{ github.sha }}.zip HHuHo_Bot/
+          zip -r HuHoBot-${{ github.sha }}.zip HuHo_Bot/
           echo "PACKAGE_NAME=HuHoBot-${{ github.sha }}.zip" >> $GITHUB_ENV
 
       - name: Upload Artifact
@@ -90,6 +90,10 @@ jobs:
 
           # 添加标签名输出
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+      
+      - name: Get timestamp
+        id: get-time
+        run: echo "TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -100,7 +104,7 @@ jobs:
             ${{ steps.changelog.outputs.body }}
 
             ### 构建信息
-            - 构建时间: ${{ github.run_created_at }}
+            - 构建时间: ${{ steps.get-time.outputs.TIME }}
             - 提交哈希: [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
           files: |
             artifacts/HuHoBot-BDS-${{ github.ref_name }}.zip
