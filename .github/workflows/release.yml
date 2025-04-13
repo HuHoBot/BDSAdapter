@@ -24,17 +24,17 @@ jobs:
 
       - name: Setup workspace
         run: |
-          mkdir -p HuHoBot
-          cp HuHo_Bot.js HuHoBot/
-          cp config.json.template HuHoBot/
-          cp manifest.json HuHoBot/
+          mkdir -p HuHo_Bot
+          cp HuHo_Bot.js HuHo_Bot/
+          cp config.json.template HuHo_Bot/
+          cp manifest.json HuHo_Bot/
           
-          echo '{}' > HuHoBot/blockMsg.json
-          mv HuHoBot/config.json.template HuHoBot/config.json
+          echo '{}' > HuHo_Bot/blockMsg.json
+          mv HuHo_Bot/config.json.template HuHo_Bot/config.json
 
       - name: Zip package
         run: |
-          zip -r HuHoBot-${{ github.sha }}.zip HuHoBot/
+          zip -r HuHoBot-${{ github.sha }}.zip HHuHo_Bot/
           echo "PACKAGE_NAME=HuHoBot-${{ github.sha }}.zip" >> $GITHUB_ENV
 
       - name: Upload Artifact
