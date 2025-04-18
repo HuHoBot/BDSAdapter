@@ -1,7 +1,7 @@
 //LiteLoaderScript Dev Helper
 /// <reference path="E:\\MCServer\\HelperLib\\src\\index.d.ts"/> 
 
-const VERSION = "0.1.5-hotfix"
+const VERSION = "0.1.6"
 const CONFIG_VERSION = 2
 const PLUGINNAME = 'HuHo_Bot'
 const PATH = `plugins/${PLUGINNAME}/`
@@ -88,7 +88,7 @@ const _0x24b849 = _0x45d5;
 const _0x5a8e96 = _0x2402; function _0x2402(_0x68c896, _0x1b1287) { const _0xe273c3 = _0xe273(); return _0x2402 = function (_0x240215, _0x1ff6ec) { _0x240215 = _0x240215 - 0x193; let _0xba014 = _0xe273c3[_0x240215]; return _0xba014; }, _0x2402(_0x68c896, _0x1b1287); } (function (_0x1e1587, _0x190fb5) { const _0x4d34f2 = _0x2402, _0x5b0686 = _0x1e1587(); while (!![]) { try { const _0x2f6279 = -parseInt(_0x4d34f2(0x19d)) / 0x1 + -parseInt(_0x4d34f2(0x198)) / 0x2 + -parseInt(_0x4d34f2(0x19c)) / 0x3 + parseInt(_0x4d34f2(0x19b)) / 0x4 + -parseInt(_0x4d34f2(0x197)) / 0x5 * (parseInt(_0x4d34f2(0x193)) / 0x6) + parseInt(_0x4d34f2(0x199)) / 0x7 * (-parseInt(_0x4d34f2(0x19a)) / 0x8) + parseInt(_0x4d34f2(0x196)) / 0x9 * (parseInt(_0x4d34f2(0x195)) / 0xa); if (_0x2f6279 === _0x190fb5) break; else _0x5b0686['push'](_0x5b0686['shift']()); } catch (_0xba4c96) { _0x5b0686['push'](_0x5b0686['shift']()); } } }(_0xe273, 0xd4a96)); function _0xe273() { const _0x4cbf2e = ['9vEWPSX', '65ZmnEvo', '1373468ClgdVH', '31227weAbeP', '600KbdGeI', '2894080zgFGZX', '4577109kKERMT', '907293CheRRU', '496578RnzMjY', 'ws://119.91.100.129:8889/', '46777660ssPdPj']; _0xe273 = function () { return _0x4cbf2e; }; return _0xe273(); }
 const wsPath_Nginx = _0x5a8e96(0x194); //有反代
 const wsPath_Direct = _0x24b849(0x96, '7U$e'); //无反代
-//const wsPath = "ws://127.0.0.1:8888/"; //本地
+const wsPath_Local = "ws://127.0.0.1:8888/"; //本地
 
 function _0x3691() {
     const _0x4fad7d = (function () {
@@ -234,14 +234,19 @@ class FWebsocketClient {
     }
 
     /**
-     * 
-     * @param {"nginx"|"direct"} connectLinkType 
+     * 连接服务器
+     * @param {"nginx"|"direct"|"local"} connectLinkType 
+     * @returns boolean 是否连接成功.
      */
     _Connect(connectLinkType = "nginx") {
         let connectLink;
         if(connectLinkType == "nginx"){
             connectLink = wsPath_Nginx
-        }else{
+        }
+        else if(connectLinkType == "local"){
+            connectLink = wsPath_Local
+        }
+        else{
             connectLink = wsPath_Direct
         }
         let isSuccess = this.WSC.connect(connectLink);
@@ -257,7 +262,7 @@ class FWebsocketClient {
             }
             logger.warn(`服务端连接失败,请尝试重新连接.`);
         }
-        
+        return isSuccess;
     }
 
     /**
@@ -266,9 +271,12 @@ class FWebsocketClient {
      */
     _ReConnect() {
         this._Close();
-        let config = readFile(CONFIGPATH)
-        this.name = config.serverName
-        return this._Connect()
+        let config = readFile(CONFIGPATH);
+        this.name = config.serverName;
+        let isSuccess = this._Connect();
+        return new Promise((cBack, _cErr) => {
+            cBack(isSuccess);
+        });
     }
 
     /**
@@ -295,15 +303,11 @@ class FWebsocketClient {
         wsc.listen("onError", (msg) => {
             logger.error(`WSC出现异常: ${msg}`);
             logger.info(`自动重连中...`);
-            setTimeout(() => { this._ReConnect() }, 5 * 1000);
-        });
-        wsc.listen("onLostConnection", (code) => {
-            logger.warn(`WSC服务器连接丢失!CODE: ${code}`);
             if (this.heart) {
                 clearInterval(this.heart)
             }
 
-            if ([1008, 1003].indexOf(code) == -1 && this.tryConnect) {
+            if (this.tryConnect) {
                 logger.info(`正在尝试重新连接...`);
                 this.tryConnect = false;
                 let reConnectCount = 0;
@@ -324,10 +328,35 @@ class FWebsocketClient {
                     }
                 };
                 reConnect();
-            } else {
-                logger.info(
-                    `由于CODE码为预设值,所以放弃重新连接,请检查版本是否为最新!`
-                );
+            }
+        });
+        wsc.listen("onLostConnection", (code) => {
+            logger.warn(`WSC服务器连接丢失!CODE: ${code}`);
+            if (this.heart) {
+                clearInterval(this.heart)
+            }
+
+            if (this.tryConnect) {
+                logger.info(`正在尝试重新连接...`);
+                this.tryConnect = false;
+                let reConnectCount = 0;
+                let reConnect = () => {
+                    reConnectCount++;
+                    if (reConnectCount >= 5) {
+                        logger.warn("已超过自动重连次数，请检查后输入/huhobot reconnect重连");
+                    } else {
+                        setTimeout(() => {
+                            this._ReConnect().then((code) => {
+                                if (!code) {
+                                    logger.warn(`连接失败!重新尝试中...`);
+                                    reConnect();
+                                }
+                            });
+                        }, 5 * 1000);
+
+                    }
+                };
+                reConnect();
             }
         });
         wsc.listen("onTextReceived", (msg) => {
