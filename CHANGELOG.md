@@ -1,3 +1,6 @@
-# HuHoBot-BDS-Adapter v0.1.5-hotfix
+# HuHoBot-BDS-Adapter v0.1.6
 
-- fix: 修复异步连接无法正常触发握手的问题
+feat(HuHo_Bot): 增加本地连接方式并优化重连机制
+- 新增本地连接方式
+- 修复重连机制
+- 更新版本号至 0.1.6
