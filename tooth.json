@@ -1,7 +1,7 @@
 {
     "format_version": 2,
-    "tooth": "github.com/HuoHuas001/HuHoBot-BDS",
-    "version": "0.1.3",
+    "tooth": "github.com/HuHoBot/BDSAdapter",
+    "version": "0.1.6",
     "info": {
         "name": "HuHoBot",
         "description": "HuHoBot BDS Adapter",
