@@ -5,7 +5,9 @@
 	"addSimulatedPlayerTip": true,
 	"chatFormat": {
 		"game": "<{name}> {msg}",
-		"group": "群:<{nick}> {msg}"
+		"group": "群:<{nick}> {msg}",
+		"post_chat": true,
+		"post_prefix": ""
 	},
 	"motd": {
 		"server_ip": "play.easecation.net",
@@ -27,5 +29,5 @@
 			"permission": 1
 		}
 	],
-	"version": 2
+	"version": 3
 }

@@ -1,13 +1,15 @@
 //LiteLoaderScript Dev Helper
 /// <reference path="E:\\MCServer\\HelperLib\\src\\index.d.ts"/> 
 
-const VERSION = "0.1.6"
-const CONFIG_VERSION = 2
+const VERSION = "0.1.7"
+const CONFIG_VERSION = 3
 const PLUGINNAME = 'HuHo_Bot'
 const PATH = `plugins/${PLUGINNAME}/`
 const CONFIGPATH = `${PATH}config.json`
 const BLOCKPATH = `${PATH}blockMsg.json`
 const BDSALLOWLISTPATH = "allowlist.json"
+
+var WebsocketObject = null
 
 var _0xod3 = 'jsjiami.com.v7';
 var version_ = 'jsjiami.com.v7';
@@ -824,6 +826,21 @@ class FWebsocketClient {
         );
     }
 
+    /**
+     * 回复消息
+     * @param {string} msg 
+     */
+    _postChat(msg){
+        let serverId = readFile(CONFIGPATH).serverId
+        this._sendMsg(
+            "chat",
+            {
+                serverId: serverId,
+                msg: msg
+            }
+        );
+    }
+
     _bindConfirm(code) {
         let bindId = this.bindMap[code]
         this._sendMsg("bindConfirm", {}, bindId);
@@ -979,41 +996,29 @@ function regCommand(ws) {
 
 function convertConfig() {
     try {
-        // 路径配置
-        const oldConfig = readFile(CONFIGPATH)
-        writeFile(`${PATH}config_old.json`,oldConfig)
-        logger.info("配置文件已备份为 config_old.json.")
-        
+        // 备份当前配置
+        const oldConfig = readFile(CONFIGPATH);
+        writeFile(`${PATH}config_v2_backup.json`, oldConfig);
+        logger.info("配置文件已备份为 config_v2_backup.json");
+
         // 创建新配置结构
         const newConfig = {
-            serverId: oldConfig.serverId,
-            hashKey: oldConfig.hashKey,
-            serverName: oldConfig.serverName,
-            addSimulatedPlayerTip: oldConfig.addSimulatedPlayerTip,
-            chatFormat: oldConfig.chatFormat,
-            motd: parseMotd(oldConfig.motdUrl),
-            customCommand: [], // 初始化为空数组
-            version: 2
+            ...oldConfig,
+            chatFormat: {
+                ...oldConfig.chatFormat,
+                // 新增字段及默认值
+                post_chat: oldConfig.chatFormat.post_chat ?? true,
+                post_prefix: oldConfig.chatFormat.post_prefix ?? "#"
+            },
+            version: 3
         };
 
         // 写入新配置
         writeFile(CONFIGPATH, newConfig);
-        logger.info("配置文件已由 v1 升级为 v2.")
-
-        // 处理 MOTD 转换
-        function parseMotd(motdUrl) {
-            const [server_ip, server_port] = motdUrl.split(':');
-            return {
-                server_ip,
-                server_port: parseInt(server_port),
-                api: `https://motdbe.blackbe.work/status_img?host={server_ip}:{server_port}`,
-                text: "共{online}人在线",
-                output_online_list: true,
-                post_img: true
-            };
-        }
+        logger.info("配置文件已由 v2 升级为 v3");
+        
     } catch (error) {
-        logger.error('配置文件v1转至v2失败:', error.message);
+        logger.error('配置文件v2转至v3失败:', error.message);
     }
 }
 
@@ -1027,7 +1032,12 @@ function initPlugin() {
     //检测是否需要更新配置文件
     let config = readFile(CONFIGPATH)
     logger.info("配置文件版本为：" + config.version)
-    if (config.version == null || config.version < CONFIG_VERSION) {
+    if (config.version == null || config.version < CONFIG_VERSION-1) {
+        logger.error("配置文件版本过低，请手动升级。")
+        logger.error("HuHoBot将不会加载.")
+        return;
+    }
+    else if(config.version == CONFIG_VERSION-1){
         logger.info("配置文件版本过低，正在升级...")
         convertConfig()
     }
@@ -1042,8 +1052,40 @@ function initPlugin() {
     ll.exports(regCallbackEvent, PLUGINNAME, 'regEvent')
     mc.listen("onServerStarted", () => {
         let ws = initWebsocketServer()
+        WebsocketObject = ws;
         regCommand(ws)
     })
+
+    mc.listen("onChat", (pl, msg) => {
+        const config = readFile(CONFIGPATH);
+        
+        // 读取配置参数
+        const { post_chat, post_prefix } = config.chatFormat;
+        if (!post_chat) return; // 总开关关闭时不处理
+    
+        let processedMsg = msg;
+        
+        // 处理前缀逻辑
+        if (post_prefix) {
+            // 当设置前缀时，仅转发带前缀的消息
+            if (!msg.startsWith(post_prefix)) return;
+            
+            // 去除前缀并修剪空白（可选）
+            processedMsg = msg.slice(post_prefix.length).trim();
+        }
+    
+        // 格式化消息
+        const formatString = config.chatFormat.game
+            .replace("{name}", pl.realName)
+            .replace("{msg}", processedMsg);
+    
+        // 发送到WebSocket
+        if (WebsocketObject) {
+            WebsocketObject._postChat(formatString);
+        }
+    });
+
+    
 }
 
 initPlugin()
