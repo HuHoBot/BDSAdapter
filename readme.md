@@ -86,8 +86,10 @@
 	"serverName": "server", // 服务器名称
 	"addSimulatedPlayerTip": true, //是否添加模拟玩家提示
 	"chatFormat": {
-		"game": "<{name}> {msg}", // 群聊格式
-		"group": "群:<{nick}> {msg}"
+		"game": "<{name}> {msg}", // 服内消息转发到群内时的文本
+		"group": "群:<{nick}> {msg}", //群内消息转发到服内时的文本
+		"post_chat": true, //是否在群内发送消息到服务器内
+		"post_prefix": "" //群内消息转发到服内时的前缀
 	},
 	"motd": {
 		"server_ip": "play.easecation.net", //使用/查在线的时候显示的图片地址（改成你自己的进服IP）
@@ -138,8 +140,10 @@
 </details>
 
 <details>
-<summary>🤖 怎么开启消息互通？</summary>
-本机器人不支持群服消息互通，因官方机器人API限制每个群每月仅能发送三条主动消息
+<summary>💬 关于群服消息互通</summary>
+当调用`/发信息`时，可以在`五分钟内`回复`5次`该消息，机器人会优先选择最新的消息进行回复
+<br/>
+如果没有找到可以回复的消息，则无法发送消息
 </details>
 
 <details>
