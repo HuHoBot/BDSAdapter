@@ -600,6 +600,8 @@ class FWebsocketClient {
      */
     onChat(id, body) {
         let config = readFile(CONFIGPATH)
+        if (!config.chatFormat.post_chat) return; // 总开关关闭时不处理
+
         let chatMsg = "群:<{nick}> {msg}"
         if(config.chatFormat){
             chatMsg = config.chatFormat.group
