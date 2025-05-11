@@ -1,7 +1,7 @@
 //LiteLoaderScript Dev Helper
 /// <reference path="E:\\MCServer\\HelperLib\\src\\index.d.ts"/> 
 
-const VERSION = "0.1.7"
+const VERSION = "0.1.8"
 const CONFIG_VERSION = 3
 const PLUGINNAME = 'HuHo_Bot'
 const PATH = `plugins/${PLUGINNAME}/`
@@ -659,8 +659,17 @@ class FWebsocketClient {
      * @param {object} body 
      */
     onQueryAllowList(id, body) {
-        let wl = readFile(BDSALLOWLISTPATH)
-        let BDSAllowlist = eval(wl);
+        let BDSAllowlist = {}
+        try{
+            let wl = readFile(BDSALLOWLISTPATH)
+            BDSAllowlist = JSON.parse(wl);
+        }catch(err){
+            logger.error("读取白名单文件失败,请检查白名单文件是否正确!")
+            logger.error(err)
+            this._sendMsg("queryWl", { "list": "读取白名单文件失败,请检查白名单文件是否正确!" }, id)
+            return;
+        }
+        
         let nameList = []
         for (let i = 0; i < BDSAllowlist.length; i++) {
             nameList.push(BDSAllowlist[i]["name"]);
