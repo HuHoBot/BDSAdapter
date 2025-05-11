@@ -985,7 +985,7 @@ function regCommand(ws) {
                     ws._bindConfirm(bindCode)
                     out.success("已向服务器发送确认绑定请求，请等待服务端下发配置文件.")
                 } else {
-                    out.error("绑定码错误.")
+                    out.error("未找到该绑定码,若检查绑定码正确,可尝试重新绑定.")
                     return;
                 }
 
