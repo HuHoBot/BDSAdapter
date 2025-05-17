@@ -1,7 +1,7 @@
 //LiteLoaderScript Dev Helper
 /// <reference path="E:\\MCServer\\HelperLib\\src\\index.d.ts"/> 
 
-const VERSION = "0.1.8"
+const VERSION = "0.1.9"
 const CONFIG_VERSION = 3
 const PLUGINNAME = 'HuHo_Bot'
 const PATH = `plugins/${PLUGINNAME}/`
@@ -197,7 +197,7 @@ function regCallbackEvent(callType, keyWord, nameSpace, funcName) {
         return false
     }
     callbackEvent[callType][keyWord] = func;
-    logger.info(`注册关键词 ${keyWord} 回调${nameSpace}::${funcName}成功`)
+    logger.info(`注册${callType}类型事件: 关键词(${keyWord}) 回调函数(${nameSpace}::${funcName}) 成功`)
     return true
 }
 
@@ -491,20 +491,27 @@ class FWebsocketClient {
                 } else {
                     this._Respone("执行失败:\n" + outputCmd.output, body.groupId, "error", id)
                 }
+                return;
             }
         }
 
         //插件自定义命令
         let data = JSON.stringify(body)
-        if (Object.keys(callbackEvent[type]).indexOf(keyWord) == -1) {
+        if (Object.keys(callbackEvent[type]).indexOf(keyWord) != -1){
+            let ret = callbackEvent[type][keyWord](data)
+            if (typeof ret === "string") {
+                this._Respone(ret, body.groupId, "success", id)
+            }else{
+                throw new Error(`自定义命令返回值必须为字符串!`)
+            }
             return;
-        }
-        let ret = callbackEvent[type][keyWord](data)
-        if (typeof ret === "string") {
-            this._Respone(ret, body.groupId, "success", id)
         }else{
-            throw new Error(`自定义命令返回值必须为字符串!`)
+            let ret = (`未找到自定义命令:${keyWord}`)
+            this._Respone(ret, body.groupId, "error", id)
         }
+        
+
+
     }
 
     /**
