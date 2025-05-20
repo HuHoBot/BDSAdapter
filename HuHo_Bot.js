@@ -1,7 +1,7 @@
 //LiteLoaderScript Dev Helper
 /// <reference path="E:\\MCServer\\HelperLib\\src\\index.d.ts"/> 
 
-const VERSION = "0.1.9"
+const VERSION = "0.2.0"
 const CONFIG_VERSION = 3
 const PLUGINNAME = 'HuHo_Bot'
 const PATH = `plugins/${PLUGINNAME}/`
@@ -670,8 +670,7 @@ class FWebsocketClient {
     onQueryAllowList(id, body) {
         let BDSAllowlist = {}
         try{
-            let wl = readFile(BDSALLOWLISTPATH)
-            BDSAllowlist = JSON.parse(wl);
+            BDSAllowlist = readFile(BDSALLOWLISTPATH)
         }catch(err){
             logger.error("读取白名单文件失败,请检查白名单文件是否正确!")
             logger.error(err)
@@ -944,7 +943,7 @@ function regCommand(ws) {
     cmd.setEnum("Bind", ["bind"])
     cmd.mandatory("gui", ParamType.Enum, "Gui", 1);
     cmd.mandatory("bind", ParamType.Enum, "Bind", 1);
-    cmd.mandatory("bindcode", ParamType.Int);
+    cmd.mandatory("bindcode", ParamType.RawText);
     cmd.overload(["Gui"]);
     cmd.overload(["Bind", "bindcode"]);
     cmd.overload([]);

@@ -1,7 +1,7 @@
-# HuHoBot-BDS-Adapter v0.1.9
+# HuHoBot-BDS-Adapter v0.2.0
 
-feat(HuHo_Bot): 更新版本并优化回调事件注册和自定义命令功能
+- **fix(whiteList)**: 修复白名单文件读取逻辑
 
-- 优化了回调事件注册的提示信息
+    - 移除了不必要的变量声明和 JSON.parse 转换
 
-- 改进了自定义命令的处理逻辑，增加了错误处理和返回信息
+- **fix(command)**: 修复bind命令部分绑定码出错的问题
