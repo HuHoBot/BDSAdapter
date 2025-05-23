@@ -44,6 +44,38 @@ jobs:
           name: plugin-package
           path: ${{ env.PACKAGE_NAME }}
 
+  upload_r2:
+    name: Upload to R2
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup workspace
+        run: |
+          mkdir -p HuHo_Bot
+          cp HuHo_Bot.js HuHo_Bot/
+          new_name="HuHoBot-BDS-${{ github.ref_name }}.js"
+          mv "HuHo_Bot/HuHo_Bot.js" "HuHo_Bot/$new_name"
+
+      - uses: ryand56/r2-upload-action@latest
+        with:
+          r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
+          r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
+          r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          r2-bucket: ${{ secrets.R2_BUCKET }}
+          source-dir: lse
+          destination-dir: ./HuHo_Bot
+
+
   release:
     name: Create Release
     needs: package
