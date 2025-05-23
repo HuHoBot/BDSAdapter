@@ -62,9 +62,9 @@ jobs:
       - name: Setup workspace
         run: |
           mkdir -p HuHo_Bot
-          cp HuHo_Bot.js HuHo_Bot/
+          cp HuHo_Bot.js lse/
           new_name="HuHoBot-BDS-${{ github.ref_name }}.js"
-          mv "HuHo_Bot/HuHo_Bot.js" "HuHo_Bot/$new_name"
+          mv "lse/HuHo_Bot.js" "lse/$new_name"
 
       - uses: ryand56/r2-upload-action@latest
         with:
@@ -73,7 +73,7 @@ jobs:
           r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           r2-bucket: ${{ secrets.R2_BUCKET }}
           source-dir: lse
-          destination-dir: HuHo_Bot
+          destination-dir: lse
 
 
   release:
