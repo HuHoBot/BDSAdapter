@@ -61,7 +61,7 @@ jobs:
 
       - name: Setup workspace
         run: |
-          mkdir -p HuHo_Bot
+          mkdir -p lse
           cp HuHo_Bot.js lse/
           new_name="HuHoBot-BDS-${{ github.ref_name }}.js"
           mv "lse/HuHo_Bot.js" "lse/$new_name"
