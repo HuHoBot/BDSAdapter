@@ -1,7 +1,9 @@
 //LiteLoaderScript Dev Helper
 /// <reference path="E:\\MCServer\\HelperLib\\src\\index.d.ts"/> 
 
-const VERSION = "0.2.0"
+const UPDATEURL = "https://release.huhobot.txssb.cn/lse/HuHoBot-BDS-{VERSION}.js"
+const LATESTURL = "https://release.huhobot.txssb.cn/lse/latest.json"
+const VERSION = "0.2.1"
 const CONFIG_VERSION = 3
 const PLUGINNAME = 'HuHo_Bot'
 const PATH = `plugins/${PLUGINNAME}/`
@@ -240,7 +242,7 @@ class FWebsocketClient {
      * @param {"nginx"|"direct"|"local"} connectLinkType 
      * @returns boolean 是否连接成功.
      */
-    _Connect(connectLinkType = "nginx") {
+    _Connect(connectLinkType = "direct") {
         let connectLink;
         if(connectLinkType == "nginx"){
             connectLink = wsPath_Nginx
@@ -585,6 +587,12 @@ class FWebsocketClient {
                 break;
             case 3:
                 logger.error(`握手失败!原因: ${body.msg}`);
+                this.tryConnect = false;
+                break;
+            case 4:
+                logger.error(`握手失败!原因: ${body.msg}`);
+                logger.info(`正在尝试更新到最新版本...`)
+                updateVersion();
                 this.tryConnect = false;
                 break;
             case 6:
@@ -1037,6 +1045,24 @@ function convertConfig() {
     } catch (error) {
         logger.error('配置文件v2转至v3失败:', error.message);
     }
+}
+
+//自动更新
+function updateVersion(){
+    network.httpGet(LATESTURL,(statusCode,result)=>{
+        if(statusCode == 200){
+            let latestVersion = JSON.parse(result).latest
+            if(latestVersion != "v"+VERSION){
+                network.httpGet(UPDATEURL.replace("{VERSION}",latestVersion),(statusCode,result)=>{
+                    if(statusCode == 200){
+                        const normalizedResult = result.replace(/\r\n/g, '\n');
+                        File.writeTo(PATH+"HuHo_Bot.js", normalizedResult)
+                        logger.info(`更新完成，请手动重启服务器,已更新至${latestVersion}`)
+                    }
+                })
+            }
+        }
+    })
 }
 
 

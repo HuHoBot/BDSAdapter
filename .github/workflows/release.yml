@@ -65,6 +65,9 @@ jobs:
           cp HuHo_Bot.js lse/
           new_name="HuHoBot-BDS-${{ github.ref_name }}.js"
           mv "lse/HuHo_Bot.js" "lse/$new_name"
+          echo '{"latest":"${{ github.ref_name }}"}' > lse/latest.json
+
+      
 
       - uses: ryand56/r2-upload-action@latest
         with:
