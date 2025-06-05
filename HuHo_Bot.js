@@ -3,8 +3,8 @@
 
 const UPDATEURL = "https://release.huhobot.txssb.cn/lse/HuHoBot-BDS-{VERSION}.js"
 const LATESTURL = "https://release.huhobot.txssb.cn/lse/latest.json"
-const VERSION = "0.2.1"
-const CONFIG_VERSION = 3
+const VERSION = "0.2.2"
+const CONFIG_VERSION = 4
 const PLUGINNAME = 'HuHo_Bot'
 const PATH = `plugins/${PLUGINNAME}/`
 const CONFIGPATH = `${PATH}config.json`
@@ -1006,12 +1006,20 @@ function regCommand(ws) {
                 }
 
                 break
+            case "update":
+                if (_ori.player == null){
+                    updateVersion();
+                }else{
+                    out.error("此命令无法在玩家终端执行!");
+                }
+                break;
             case "help":
                 out.success("HuHoBot 帮助列表:");
                 out.success("- /huhobot reload: 重载配置文件");
                 out.success("- /huhobot reconnect: 重新连接");
                 out.success("- /huhobot disconnect: 断开服务器连接");
                 out.success("- /huhobot bind <bindCode:str>: 绑定服务器");
+                out.success("- /huhobot update: 更新插件版本");
                 out.success("- /huhobot help: 显示帮助列表");
                 break
         }
@@ -1020,11 +1028,12 @@ function regCommand(ws) {
 }
 
 function convertConfig() {
+    const oldConfigVersion = CONFIG_VERSION-1;
     try {
         // 备份当前配置
         const oldConfig = readFile(CONFIGPATH);
-        writeFile(`${PATH}config_v2_backup.json`, oldConfig);
-        logger.info("配置文件已备份为 config_v2_backup.json");
+        writeFile(`${PATH}config_v${oldConfigVersion}_backup.json`, oldConfig);
+        logger.info(`配置文件已备份为 config_v${oldConfigVersion}_backup.json`);
 
         // 创建新配置结构
         const newConfig = {
@@ -1032,18 +1041,17 @@ function convertConfig() {
             chatFormat: {
                 ...oldConfig.chatFormat,
                 // 新增字段及默认值
-                post_chat: oldConfig.chatFormat.post_chat ?? true,
-                post_prefix: oldConfig.chatFormat.post_prefix ?? "#"
+                max_length: oldConfig.chatFormat.max_length ?? 64
             },
-            version: 3
+            version: CONFIG_VERSION
         };
 
         // 写入新配置
         writeFile(CONFIGPATH, newConfig);
-        logger.info("配置文件已由 v2 升级为 v3");
+        logger.info(`配置文件已由 v${oldConfigVersion} 升级为 v${CONFIG_VERSION}`);
         
     } catch (error) {
-        logger.error('配置文件v2转至v3失败:', error.message);
+        logger.error(`配置文件v${oldConfigVersion}转至v${CONFIG_VERSION}失败:`, error.message);
     }
 }
 
@@ -1057,9 +1065,13 @@ function updateVersion(){
                     if(statusCode == 200){
                         const normalizedResult = result.replace(/\r\n/g, '\n');
                         File.writeTo(PATH+"HuHo_Bot.js", normalizedResult)
-                        logger.info(`更新完成，请手动重启服务器,已更新至${latestVersion}`)
+                        //尝试重载
+                        logger.info(`HuHoBot已更新至${latestVersion}，已尝试重载插件，若未生效，请重启服务器.`)
+                        mc.runcmd(`ll reload HuHo_Bot`)
                     }
                 })
+            }else{
+                logger.info(`当前版本为最新版本v${VERSION}，无需更新.`)
             }
         }
     })
@@ -1103,7 +1115,7 @@ function initPlugin() {
         const config = readFile(CONFIGPATH);
         
         // 读取配置参数
-        const { post_chat, post_prefix } = config.chatFormat;
+        const { post_chat, post_prefix, max_length } = config.chatFormat;
         if (!post_chat) return; // 总开关关闭时不处理
     
         let processedMsg = msg;
@@ -1116,7 +1128,13 @@ function initPlugin() {
             // 去除前缀并修剪空白（可选）
             processedMsg = msg.slice(post_prefix.length).trim();
         }
-    
+
+        //检查是否超过最大值
+        if(processedMsg.length > max_length){
+            pl.tell(`消息过长，请勿发送超过${max_length}个字符的消息。`)
+            return;
+        }
+
         // 格式化消息
         const formatString = config.chatFormat.game
             .replace("{name}", pl.realName)
