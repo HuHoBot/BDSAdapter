@@ -35,10 +35,10 @@ jobs:
 
       - name: Validate JSON syntax
         run: |
-          echo "Validating config.json.template..."
-          if ! jq . HuHo_Bot/config.json.template >/dev/null; then
-            echo "::error::Invalid JSON syntax in config.json.template"
-            jq . HuHo_Bot/config.json.template  # 输出具体错误
+          echo "Validating config.json..."
+          if ! jq . HuHo_Bot/config.json >/dev/null; then
+            echo "::error::Invalid JSON syntax in config.json"
+            jq . HuHo_Bot/config.json  # 输出具体错误
             exit 1
           fi
 
