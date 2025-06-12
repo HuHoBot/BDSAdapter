@@ -7,7 +7,7 @@
 		"game": "<{name}> {msg}",
 		"group": "群:<{nick}> {msg}",
 		"post_chat": true,
-		"post_prefix": ""
+		"post_prefix": "",
 		"max_length": 64
 	},
 	"motd": {
