@@ -1,0 +1,10 @@
+{
+    "entry": "huhobot.js",
+    "name": "HuHoBot",
+    "type": "lse-nodejs",
+    "dependencies": [
+        {
+            "name": "legacy-script-engine-nodejs"
+        }
+    ]
+}

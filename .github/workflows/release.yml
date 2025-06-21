@@ -1,0 +1,166 @@
+name: Package and Release
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+    paths:
+      - 'huhobot.js'
+      - 'config.json.template'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'manifest.json'
+      - '.github/workflows/*'
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  package:
+    name: Create Plugin Package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup workspace
+        run: |
+          mkdir -p HuHoBot
+          cp huhobot.js HuHoBot/
+          cp config.json.template HuHoBot/
+          cp manifest.json HuHoBot/
+          cp package-lock.json HuHoBot/
+          cp package.json HuHoBot/
+          
+          mv HuHoBot/config.json.template HuHoBot/config.json
+
+      - name: Validate JSON syntax
+        run: |
+          echo "Validating config.json..."
+          if ! jq . HuHoBot/config.json >/dev/null; then
+            echo "::error::Invalid JSON syntax in config.json"
+            jq . HuHoBot/config.json  # 输出具体错误
+            exit 1
+          fi
+
+      - name: Zip package
+        run: |
+          zip -r HuHoBot-${{ github.sha }}.zip HuHoBot/
+          echo "PACKAGE_NAME=HuHoBot-${{ github.sha }}.zip" >> $GITHUB_ENV
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugin-package
+          path: ${{ env.PACKAGE_NAME }}
+
+  upload_r2:
+    name: Upload to R2
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup workspace
+        run: |
+          mkdir -p lse
+          cp huhobot.js lse/
+          new_name="HuHoBot-BDS-${{ github.ref_name }}.js"
+          mv "lse/huhobot.js" "lse/$new_name"
+          echo '{"latest":"${{ github.ref_name }}"}' > lse/latest.json
+
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-package
+          path: artifacts
+
+      - uses: ryand56/r2-upload-action@latest
+        with:
+          r2-account-id: ${{ secrets.R2_ACCOUNT_ID }}
+          r2-access-key-id: ${{ secrets.R2_ACCESS_KEY_ID }}
+          r2-secret-access-key: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          r2-bucket: ${{ secrets.R2_BUCKET }}
+          source-dir: lse
+          destination-dir: lse
+
+  release:
+    name: Create Release
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Download Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: plugin-package
+          path: artifacts
+
+      - name: Rename package
+        run: |
+          old_name=$(ls artifacts/HuHoBot-*.zip)
+          new_name="HuHoBot-BDS-${{ github.ref_name }}.zip"
+          mv "$old_name" "artifacts/$new_name"
+
+      - name: Extract release info
+        id: changelog
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          
+          # 修复：使用正确的标签格式匹配
+          VERSION=${TAG_NAME#v}  # 去除v前缀（如果CHANGELOG使用纯版本号）
+          
+          CHANGELOG_CONTENT=$(awk -v version="[v$VERSION]" '
+            BEGIN {RS="## "; FS="\n"}
+            $1 ~ version {
+              sub(/\[.*\] - .*\n/, "")
+              gsub(/`/, "\\`")
+              gsub(/"/, "\\\"")
+              print
+              exit
+            }
+          ' CHANGELOG.md)
+
+          EOF_MARKER=$(openssl rand -base64 12)
+          echo "body<<$EOF_MARKER" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+          echo "$EOF_MARKER" >> $GITHUB_OUTPUT
+
+          # 添加标签名输出
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+      
+      - name: Get timestamp
+        id: get-time
+        run: echo "TIME=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: HuHoBot ${{ github.ref_name }}
+          body: |
+            ${{ steps.changelog.outputs.body }}
+
+            ### 构建信息
+            - 构建时间: ${{ steps.get-time.outputs.TIME }}
+            - 提交哈希: [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+          files: |
+            artifacts/HuHoBot-BDS-${{ github.ref_name }}.zip
