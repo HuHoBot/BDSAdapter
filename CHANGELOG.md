@@ -1,6 +1,5 @@
-# HuHoBot-BDS-Adapter v0.2.3
+# HuHoBot-BDS-Adapter v0.2.4
 
-- **feat(Websocket)**: 升级至`wss://`协议以适配新版服务端
-- **feat(Lse)**: 依赖项由Lse-quickjs改为Lse-nodejs
-- **delete(blockMsg)**: 移除blockMsg相关代码
+- **feat(Websocket)**: 添加DNS报错
+- **feat(Lse)**: 修正自动更新文件内容
 
