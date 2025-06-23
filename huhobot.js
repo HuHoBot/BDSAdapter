@@ -147,28 +147,37 @@ class FWebsocketClient {
      * @param {"nginx"|"direct"|"local"} connectLinkType 
      * @returns boolean 是否连接成功.
      */
-    _Connect(connectLinkType = "direct") {
-        let connectLink;
-        if(connectLinkType == "nginx"){
-            connectLink = wsPath_Nginx
-        }
-        else if(connectLinkType == "local"){
-            connectLink = wsPath_Local
-        }
-        else{
-            connectLink = wsPath_Direct
-        }
+    _Connect() {
+        try {
+            this.WSC = new WebSocket(wsPath_Direct, {
+                rejectUnauthorized: false, // 跳过证书验证
+                handshakeTimeout: 10000 // 10秒超时
+            });
 
-        this.WSC = new WebSocket(connectLink, {
-            rejectUnauthorized: false // 跳过证书验证
-          });
-        this.WSC.on('open', () => { 
-            logger.info(`服务端连接成功!`);
-            logger.info(`开始握手...`);
-            this._sendShakeHand();
-            this._InitMsgProcess();
-        });
-        return true;
+            this.WSC.on('error', (err) => {
+                if (err.code === 'ENOTFOUND') {
+                    logger.error(`无法解析域名 ${err.hostname}，请检查DNS设置或网络连接`);
+                } else {
+                    logger.error(`连接错误: ${err.message}`);
+                }
+            });
+
+            this.WSC.on('open', () => {
+                logger.info(`服务端连接成功!`);
+                logger.info(`开始握手...`);
+                this._sendShakeHand();
+                this._InitMsgProcess();
+            });
+            return true;
+        } catch (err) {
+            if (err.code === 'ENOTFOUND') {
+                logger.error(`无法解析域名，请检查DNS设置是否正确或网络是否畅通`);
+                logger.error(`错误详情: ${err.message}`);
+            } else {
+                logger.error(`连接初始化失败: ${err.stack}`);
+            }
+            return false;
+        }
     }
 
     /**
@@ -924,10 +933,10 @@ function updateVersion(){
                 network.httpGet(UPDATEURL.replace("{VERSION}",latestVersion),(statusCode,result)=>{
                     if(statusCode == 200){
                         const normalizedResult = result.replace(/\r\n/g, '\n');
-                        File.writeTo(PATH+"HuHo_Bot.js", normalizedResult)
+                        File.writeTo(PATH+"huhobot.js", normalizedResult)
                         //尝试重载
                         logger.info(`HuHoBot已更新至${latestVersion}，已尝试重载插件，若未生效，请重启服务器.`)
-                        mc.runcmd(`ll reload HuHo_Bot`)
+                        mc.runcmd(`ll reload ${PLUGINNAME}`)
                     }
                 })
             }else{
