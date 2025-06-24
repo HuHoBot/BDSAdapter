@@ -56,14 +56,14 @@ function writeFile(file, data) {
  */
 function paginateArray(array, itemsPerPage) {
     let pages = [];
-    try{
+    try {
         for (let i = 0; i < array.length; i += itemsPerPage) {
             pages.push(array.slice(i, i + itemsPerPage));
         }
-    }catch(_){
+    } catch (_) {
         pages.push("白名单解析出现异常,请管理员检查白名单")
     }
-    
+
     return pages;
 }
 
@@ -200,6 +200,7 @@ class FWebsocketClient {
      */
     _Close() {
         this.isShakeHand = false;
+        this.tryConnect = false;
         if (this.WSC.readyState == this.WSC.OPEN) {
             return this.close(false);
         }
@@ -211,9 +212,10 @@ class FWebsocketClient {
      */
     _InitMsgProcess() {
         let wsc = this.WSC;
-        
+
         // 替换原来的 listen 方法调用
         wsc.on('message', (msg) => {
+            //logger.info(`收到消息: ${msg}`)
             try {
                 let json = JSON.parse(msg);
                 this._processMessage(json.header, json.body);
@@ -341,8 +343,8 @@ class FWebsocketClient {
                 case "queryOnline": this.onQueryOnline(header.id, body); break;
                 case "shutdown": this.onShutDown(header.id, body); break;
                 case "sendConfig": this.onSendConfig(header.id, body); break;
-                case "run": this.onRun(header.id, body, header.type,false); break;
-                case "runAdmin": this.onRun(header.id, body, header.type,true); break;
+                case "run": this.onRun(header.id, body, header.type, false); break;
+                case "runAdmin": this.onRun(header.id, body, header.type, true); break;
                 case "bindRequest": this.onBindRequest(header.id, body, header.type); break;
             }
         } catch (e) {
@@ -373,26 +375,26 @@ class FWebsocketClient {
      * @param {string} type 
      * @param {boolean} isAdmin
      */
-    onRun(id, body, type,isAdmin) {
+    onRun(id, body, type, isAdmin) {
         let keyWord = body.key;
         let params = body.runParams;
 
         //配置文件自定义命令
         let config = readFile(CONFIGPATH);
         let customCommand = config.customCommand;
-        for(let i=0;i<customCommand.length;i++){
+        for (let i = 0; i < customCommand.length; i++) {
             let command = customCommand[i]
-            if(command.key == keyWord){
+            if (command.key == keyWord) {
                 //判断是否是管理员
-                if(command.permission > 0 && !isAdmin){
+                if (command.permission > 0 && !isAdmin) {
                     this._Respone(`权限不足，若您是管理员，请使用/管理员执行`, body.groupId, "error", id)
                     return;
                 }
                 //格式化参数
                 let cmd = command.command;
-                for(let j=0;j<params.length;j++){
+                for (let j = 0; j < params.length; j++) {
                     let param = params[j]
-                    cmd = cmd.replace(`&${j+1}`,param)
+                    cmd = cmd.replace(`&${j + 1}`, param)
                 }
                 //执行
                 let outputCmd = mc.runcmdEx(cmd);
@@ -407,19 +409,19 @@ class FWebsocketClient {
 
         //插件自定义命令
         let data = JSON.stringify(body)
-        if (Object.keys(callbackEvent[type]).indexOf(keyWord) != -1){
+        if (Object.keys(callbackEvent[type]).indexOf(keyWord) != -1) {
             let ret = callbackEvent[type][keyWord](data)
             if (typeof ret === "string") {
                 this._Respone(ret, body.groupId, "success", id)
-            }else{
+            } else {
                 throw new Error(`自定义命令返回值必须为字符串!`)
             }
             return;
-        }else{
+        } else {
             let ret = (`未找到自定义命令:${keyWord}`)
             this._Respone(ret, body.groupId, "error", id)
         }
-        
+
 
 
     }
@@ -526,12 +528,12 @@ class FWebsocketClient {
         if (!config.chatFormat.post_chat) return; // 总开关关闭时不处理
 
         let chatMsg = "群:<{nick}> {msg}"
-        if(config.chatFormat){
+        if (config.chatFormat) {
             chatMsg = config.chatFormat.group
-            .replace("{nick}", body.nick)
-            .replace("{msg}", body.msg);
+                .replace("{nick}", body.nick)
+                .replace("{msg}", body.msg);
         }
-        
+
         sendGroupMsg2Game(chatMsg)
     }
 
@@ -585,15 +587,15 @@ class FWebsocketClient {
      */
     onQueryAllowList(id, body) {
         let BDSAllowlist = {}
-        try{
+        try {
             BDSAllowlist = readFile(BDSALLOWLISTPATH)
-        }catch(err){
+        } catch (err) {
             logger.error("读取白名单文件失败,请检查白名单文件是否正确!")
             logger.error(err)
             this._sendMsg("queryWl", { "list": "读取白名单文件失败,请检查白名单文件是否正确!" }, id)
             return;
         }
-        
+
         let nameList = []
         for (let i = 0; i < BDSAllowlist.length; i++) {
             nameList.push(BDSAllowlist[i]["name"]);
@@ -666,7 +668,7 @@ class FWebsocketClient {
         //拼接在线列表
         let onlineNameString = ""
         let online = mc.getOnlinePlayers();
-        if(output_online_list){
+        if (output_online_list) {
             for (let i = 0; i < online.length; i++) {
                 let simulated = ""
                 if (online[i].isSimulatedPlayer() && config.addSimulatedPlayerTip) {
@@ -680,13 +682,13 @@ class FWebsocketClient {
         onlineNameString += text
 
         this._sendMsg("queryOnline", {
-            "list": { 
-                "msg": onlineNameString, 
+            "list": {
+                "msg": onlineNameString,
                 "url": `${server_ip}:${server_port}`,
                 "imgUrl": api.replace("{server_ip}", server_ip).replace("{server_port}", server_port),
                 "post_img": post_img,
                 "serverType": "bedrock",
-            } 
+            }
         }, id)
     }
 
@@ -727,8 +729,8 @@ class FWebsocketClient {
      * @returns 
      */
     _sendMsg(type, body, uuid = system.randomGuid()) {
-        if (this.WSC.readyState != this.WSC.OPEN && this.isShakeHand) {
-            //cb(null);
+        if ((this.WSC.readyState != this.WSC.OPEN)) {
+            logger.error("Websocket未连接,请连接后再试.")
             return;
         }
         let response = {
@@ -763,7 +765,7 @@ class FWebsocketClient {
      * 回复消息
      * @param {string} msg 
      */
-    _postChat(msg){
+    _postChat(msg) {
         let serverId = readFile(CONFIGPATH).serverId
         this._sendMsg(
             "chat",
@@ -788,6 +790,9 @@ class FWebsocketClient {
         this.isShakeHand = false;
         if (!bool) {
             return this.WSC.close(1000);
+        }
+        if (this.autoReconnect) {
+            clearTimeout(this.autoReconnect);
         }
         return true;
     }
@@ -819,7 +824,7 @@ function initWebsocketServer() {
  */
 function regCommand(ws) {
     const cmd = mc.newCommand("huhobot", `${PLUGINNAME}管理`, PermType.Any);
-    cmd.setEnum("Gui", ["gui", "reconnect", "close","help"]);
+    cmd.setEnum("Gui", ["gui", "reconnect", "close", "help"]);
     cmd.setEnum("Bind", ["bind"])
     cmd.mandatory("gui", ParamType.Enum, "Gui", 1);
     cmd.mandatory("bind", ParamType.Enum, "Bind", 1);
@@ -842,7 +847,7 @@ function regCommand(ws) {
                 if (_ori.player == null || _ori.player.permLevel > 0) {
                     if (ws.WSC.status == ws.WSC.Open) {
                         ws._Close()
-                    } 
+                    }
                     ws._Connect();
                     out.error(`[${PLUGINNAME}]Websocket 正在重连`)
                 } else {
@@ -876,9 +881,9 @@ function regCommand(ws) {
 
                 break
             case "update":
-                if (_ori.player == null){
+                if (_ori.player == null) {
                     updateVersion();
-                }else{
+                } else {
                     out.error("此命令无法在玩家终端执行!");
                 }
                 break;
@@ -897,7 +902,7 @@ function regCommand(ws) {
 }
 
 function convertConfig() {
-    const oldConfigVersion = CONFIG_VERSION-1;
+    const oldConfigVersion = CONFIG_VERSION - 1;
     try {
         // 备份当前配置
         const oldConfig = readFile(CONFIGPATH);
@@ -918,28 +923,28 @@ function convertConfig() {
         // 写入新配置
         writeFile(CONFIGPATH, newConfig);
         logger.info(`配置文件已由 v${oldConfigVersion} 升级为 v${CONFIG_VERSION}`);
-        
+
     } catch (error) {
         logger.error(`配置文件v${oldConfigVersion}转至v${CONFIG_VERSION}失败:`, error.message);
     }
 }
 
 //自动更新
-function updateVersion(){
-    network.httpGet(LATESTURL,(statusCode,result)=>{
-        if(statusCode == 200){
+function updateVersion() {
+    network.httpGet(LATESTURL, (statusCode, result) => {
+        if (statusCode == 200) {
             let latestVersion = JSON.parse(result).latest
-            if(latestVersion != "v"+VERSION){
-                network.httpGet(UPDATEURL.replace("{VERSION}",latestVersion),(statusCode,result)=>{
-                    if(statusCode == 200){
+            if (latestVersion != "v" + VERSION) {
+                network.httpGet(UPDATEURL.replace("{VERSION}", latestVersion), (statusCode, result) => {
+                    if (statusCode == 200) {
                         const normalizedResult = result.replace(/\r\n/g, '\n');
-                        File.writeTo(PATH+"huhobot.js", normalizedResult)
+                        File.writeTo(PATH + "huhobot.js", normalizedResult)
                         //尝试重载
                         logger.info(`HuHoBot已更新至${latestVersion}，已尝试重载插件，若未生效，请重启服务器.`)
                         mc.runcmd(`ll reload ${PLUGINNAME}`)
                     }
                 })
-            }else{
+            } else {
                 logger.info(`当前版本为最新版本v${VERSION}，无需更新.`)
             }
         }
@@ -956,12 +961,12 @@ function initPlugin() {
     //检测是否需要更新配置文件
     let config = readFile(CONFIGPATH)
     logger.info("配置文件版本为：" + config.version)
-    if (config.version == null || config.version < CONFIG_VERSION-1) {
+    if (config.version == null || config.version < CONFIG_VERSION - 1) {
         logger.error("配置文件版本过低，请手动升级。")
         logger.error("HuHoBot将不会加载.")
         return;
     }
-    else if(config.version == CONFIG_VERSION-1){
+    else if (config.version == CONFIG_VERSION - 1) {
         logger.info("配置文件版本过低，正在升级...")
         convertConfig()
     }
@@ -982,24 +987,24 @@ function initPlugin() {
 
     mc.listen("onChat", (pl, msg) => {
         const config = readFile(CONFIGPATH);
-        
+
         // 读取配置参数
         const { post_chat, post_prefix, max_length } = config.chatFormat;
         if (!post_chat) return; // 总开关关闭时不处理
-    
+
         let processedMsg = msg;
-        
+
         // 处理前缀逻辑
         if (post_prefix) {
             // 当设置前缀时，仅转发带前缀的消息
             if (!msg.startsWith(post_prefix)) return;
-            
+
             // 去除前缀并修剪空白（可选）
             processedMsg = msg.slice(post_prefix.length).trim();
         }
 
         //检查是否超过最大值
-        if(processedMsg.length > max_length){
+        if (processedMsg.length > max_length) {
             pl.tell(`消息过长，请勿发送超过${max_length}个字符的消息。`)
             return;
         }
@@ -1008,14 +1013,14 @@ function initPlugin() {
         const formatString = config.chatFormat.game
             .replace("{name}", pl.realName)
             .replace("{msg}", processedMsg);
-    
+
         // 发送到WebSocket
         if (WebsocketObject) {
             WebsocketObject._postChat(formatString);
         }
     });
 
-    
+
 }
 
 initPlugin()

@@ -1,5 +1,4 @@
-# HuHoBot-BDS-Adapter v0.2.4
+# HuHoBot-BDS-Adapter v0.2.5
 
-- **feat(Websocket)**: 添加DNS报错
-- **feat(Lse)**: 修正自动更新文件内容
+- **feat(Websocket)**: 修复使用手动重连后无限自动重连的bug
 
