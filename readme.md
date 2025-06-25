@@ -51,7 +51,7 @@
 
 ### 环境要求
 
-- LegacyScriptEngine-Nodejs 0.9.4+
+- LegacyScriptEngine 0.9.4+
 
 ### 快速开始
 

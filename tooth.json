@@ -1,7 +1,7 @@
 {
     "format_version": 2,
     "tooth": "github.com/HuHoBot/BDSAdapter",
-    "version": "0.2.3",
+    "version": "0.1.6",
     "info": {
         "name": "HuHoBot",
         "description": "HuHoBot BDS Adapter",
@@ -13,7 +13,7 @@
     },
     "dependencies": {
         "github.com/LiteLDev/LeviLamina": ">=0.12.x",
-        "gitea.litebds.com/LiteLDev/legacy-script-engine-nodejs": ">=0.7.9"
+        "gitea.litebds.com/LiteLDev/legacy-script-engine-quickjs": ">=0.7.9"
     },
     "commands": {},
     "files": {}
