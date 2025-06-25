@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main", "dev" ]
     paths:
-      - 'HuHo_Bot.js'
+      - 'HuHoBot.js'
       - 'config.json.template'
       - 'manifest.json'
       - '.github/workflows/*'
@@ -25,26 +25,26 @@ jobs:
 
       - name: Setup workspace
         run: |
-          mkdir -p HuHo_Bot
-          cp HuHo_Bot.js HuHo_Bot/
-          cp config.json.template HuHo_Bot/
-          cp manifest.json HuHo_Bot/
+          mkdir -p HuHoBot
+          cp huhobot.js HuHoBot/
+          cp config.json.template HuHoBot/
+          cp manifest.json HuHoBot/
           
-          echo '{}' > HuHo_Bot/blockMsg.json
-          mv HuHo_Bot/config.json.template HuHo_Bot/config.json
+          echo '{}' > HuHoBot/blockMsg.json
+          mv HuHoBot/config.json.template HuHoBot/config.json
 
       - name: Validate JSON syntax
         run: |
           echo "Validating config.json..."
-          if ! jq . HuHo_Bot/config.json >/dev/null; then
+          if ! jq . HuHoBot/config.json >/dev/null; then
             echo "::error::Invalid JSON syntax in config.json"
-            jq . HuHo_Bot/config.json  # 输出具体错误
+            jq . HuHoBot/config.json  # 输出具体错误
             exit 1
           fi
 
       - name: Zip package
         run: |
-          zip -r HuHoBot-${{ github.sha }}.zip HuHo_Bot/
+          zip -r HuHoBot-${{ github.sha }}.zip HuHoBot/
           echo "PACKAGE_NAME=HuHoBot-${{ github.sha }}.zip" >> $GITHUB_ENV
 
       - name: Upload Artifact
@@ -71,9 +71,9 @@ jobs:
       - name: Setup workspace
         run: |
           mkdir -p lse
-          cp HuHo_Bot.js lse/
+          cp HuHoBot.js lse/
           new_name="HuHoBot-BDS-${{ github.ref_name }}.js"
-          mv "lse/HuHo_Bot.js" "lse/$new_name"
+          mv "lse/HuHoBot.js" "lse/$new_name"
           echo '{"latest":"${{ github.ref_name }}"}' > lse/latest.json
 
       - name: Download Artifact
