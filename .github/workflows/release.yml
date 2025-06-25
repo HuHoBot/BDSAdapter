@@ -71,16 +71,10 @@ jobs:
       - name: Setup workspace
         run: |
           mkdir -p lse
-          cp HuHoBot.js lse/
+          cp huhobot.js lse/
           new_name="HuHoBot-BDS-${{ github.ref_name }}.js"
-          mv "lse/HuHoBot.js" "lse/$new_name"
+          mv "lse/huhobot.js" "lse/$new_name"
           echo '{"latest":"${{ github.ref_name }}"}' > lse/latest.json
-
-      - name: Download Artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: plugin-package
-          path: artifacts
 
       - uses: ryand56/r2-upload-action@latest
         with:
