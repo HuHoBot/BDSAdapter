@@ -157,7 +157,7 @@ jobs:
             artifacts/HuHoBot-BDS-${{ github.ref_name }}.zip
 
       - name: Minebbs-Auto-Release
-        uses: HuoHuas001/Minebbs-Auto-Release@v1.0.6
+        uses: HuoHuas001/Minebbs-Auto-Release@v1.0.7
         with: 
           resources: '9384'
           token: ${{ secrets.MINEBBSKEY }}
