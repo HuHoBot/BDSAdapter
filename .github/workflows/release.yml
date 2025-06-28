@@ -155,3 +155,13 @@ jobs:
             - 提交哈希: [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
           files: |
             artifacts/HuHoBot-BDS-${{ github.ref_name }}.zip
+
+      - name: Minebbs-Auto-Release
+        uses: HuoHuas001/Minebbs-Auto-Release@v1.0.6
+        with: 
+          resources: '9384'
+          token: ${{ secrets.MINEBBSKEY }}
+          title: ${{ github.ref_name }}
+          new_version: ${{ github.ref_name }}
+          description_file: './CHANGELOG.md'
+          file_url: 'https://github.com/HuHoBot/BDSAdapter/releases/latest'
