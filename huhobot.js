@@ -3,7 +3,7 @@
 
 const UPDATEURL = "https://release.huhobot.txssb.cn/lse/HuHoBot-BDS-{VERSION}.js"
 const LATESTURL = "https://release.huhobot.txssb.cn/lse/latest.json"
-const VERSION = "0.2.6"
+const VERSION = "0.2.7"
 const CONFIG_VERSION = 4
 const PLUGINNAME = 'HuHoBot'
 const PATH = `plugins/${PLUGINNAME}/`
@@ -12,10 +12,6 @@ const BLOCKPATH = `${PATH}blockMsg.json`
 const BDSALLOWLISTPATH = "allowlist.json"
 
 var WebsocketObject = null
-
-const _0x473b35 = _0x2956; function _0x5e8c() { const _0x5c1ec7 = ['4169079hhnJCu', 'toString', 'log', '244qliPNl', 'info', 'exception', 'length', '13985EKWRHl', 'return\x20(function()\x20', 'error', '(((.+)+)+)+$', '32436636XXoTLg', '6975038uzTDTN', '12844190OnBJnq', 'constructor', '3951081kSGNyJ', 'ws://bot.axe.ink:2087', '6ssBwjR', 'trace', 'warn', 'bind', 'apply', '5MAaKVS', 'console', '11ySGjrZ', 'search', '__proto__', '282556zXjmKj', '16RyWjCR']; _0x5e8c = function () { return _0x5c1ec7; }; return _0x5e8c(); } (function (_0x2345db, _0x5d4a55) { const _0x488aad = _0x2956, _0x45862e = _0x2345db(); while (!![]) { try { const _0x1cce10 = parseInt(_0x488aad(0x16e)) / 0x1 * (-parseInt(_0x488aad(0x187)) / 0x2) + parseInt(_0x488aad(0x184)) / 0x3 + parseInt(_0x488aad(0x182)) / 0x4 * (-parseInt(_0x488aad(0x17d)) / 0x5) + parseInt(_0x488aad(0x178)) / 0x6 * (-parseInt(_0x488aad(0x173)) / 0x7) + -parseInt(_0x488aad(0x183)) / 0x8 * (-parseInt(_0x488aad(0x176)) / 0x9) + -parseInt(_0x488aad(0x174)) / 0xa + parseInt(_0x488aad(0x17f)) / 0xb * (parseInt(_0x488aad(0x172)) / 0xc); if (_0x1cce10 === _0x5d4a55) break; else _0x45862e['push'](_0x45862e['shift']()); } catch (_0x3fe7da) { _0x45862e['push'](_0x45862e['shift']()); } } }(_0x5e8c, 0xdeece)); const _0x5949e2 = (function () { let _0x501637 = !![]; return function (_0x94a7f0, _0x4f07de) { const _0x54a3bb = _0x501637 ? function () { if (_0x4f07de) { const _0xa9a71c = _0x4f07de['apply'](_0x94a7f0, arguments); return _0x4f07de = null, _0xa9a71c; } } : function () { }; return _0x501637 = ![], _0x54a3bb; }; }()), _0xc710bb = _0x5949e2(this, function () { const _0xc7f1de = _0x2956; return _0xc710bb[_0xc7f1de(0x185)]()[_0xc7f1de(0x180)](_0xc7f1de(0x171))[_0xc7f1de(0x185)]()[_0xc7f1de(0x175)](_0xc710bb)[_0xc7f1de(0x180)](_0xc7f1de(0x171)); }); _0xc710bb(); const _0x2d05eb = (function () { let _0x5892b6 = !![]; return function (_0x599aa8, _0x325906) { const _0x5d2097 = _0x5892b6 ? function () { const _0x464a9e = _0x2956; if (_0x325906) { const _0xaa26a = _0x325906[_0x464a9e(0x17c)](_0x599aa8, arguments); return _0x325906 = null, _0xaa26a; } } : function () { }; return _0x5892b6 = ![], _0x5d2097; }; }()), _0x2b0be6 = _0x2d05eb(this, function () { const _0x1d6afa = _0x2956, _0x1bebdf = function () { const _0x2ff01a = _0x2956; let _0x17799f; try { _0x17799f = Function(_0x2ff01a(0x16f) + '{}.constructor(\x22return\x20this\x22)(\x20)' + ');')(); } catch (_0x27010a) { _0x17799f = window; } return _0x17799f; }, _0x31d5c7 = _0x1bebdf(), _0x2b54f1 = _0x31d5c7['console'] = _0x31d5c7[_0x1d6afa(0x17e)] || {}, _0x5086a3 = [_0x1d6afa(0x186), _0x1d6afa(0x17a), _0x1d6afa(0x188), _0x1d6afa(0x170), _0x1d6afa(0x16c), 'table', _0x1d6afa(0x179)]; for (let _0x1c3da1 = 0x0; _0x1c3da1 < _0x5086a3[_0x1d6afa(0x16d)]; _0x1c3da1++) { const _0x538fcc = _0x2d05eb[_0x1d6afa(0x175)]['prototype']['bind'](_0x2d05eb), _0x337339 = _0x5086a3[_0x1c3da1], _0x36a437 = _0x2b54f1[_0x337339] || _0x538fcc; _0x538fcc[_0x1d6afa(0x181)] = _0x2d05eb[_0x1d6afa(0x17b)](_0x2d05eb), _0x538fcc[_0x1d6afa(0x185)] = _0x36a437[_0x1d6afa(0x185)][_0x1d6afa(0x17b)](_0x36a437), _0x2b54f1[_0x337339] = _0x538fcc; } }); function _0x2956(_0xaa9101, _0xa21bcd) { const _0x314273 = _0x5e8c(); return _0x2956 = function (_0x2b0be6, _0x2d05eb) { _0x2b0be6 = _0x2b0be6 - 0x16c; let _0x3a053c = _0x314273[_0x2b0be6]; return _0x3a053c; }, _0x2956(_0xaa9101, _0xa21bcd); } _0x2b0be6(); const wsPath_Direct = _0x473b35(0x177);
-
-
 
 let callbackEvent = {
     run: {},
@@ -120,7 +116,6 @@ class FWebsocketClient {
         WSC.Open = 0;
         WSC.Closing = 1;
         WSC.Closed = 2;
-        //this.connectLink = wsPath;
         this.isShakeHand = false;
         this.tryConnect = false;
         this.heart = null;
@@ -150,29 +145,14 @@ class FWebsocketClient {
      * @param {"nginx"|"direct"|"local"} connectLinkType 
      * @returns boolean 是否连接成功.
      */
-    _Connect(connectLinkType = "direct") {
-        let connectLink;
-        if (connectLinkType == "nginx") {
-            connectLink = wsPath_Nginx
-        }
-        else if (connectLinkType == "local") {
-            connectLink = wsPath_Local
-        }
-        else {
-            connectLink = wsPath_Direct
-        }
-        let isSuccess = this.WSC.connect(connectLink);
+    _Connect() {
+        let isSuccess = this.WSC.connect(wsPath_Direct);
         if (isSuccess) {
             logger.info(`服务端连接成功!`);
             logger.info(`开始握手...`);
             this._sendShakeHand();
         } else {
-            if (connectLinkType == "nginx") {
-                logger.warn(`尝试使用反代连接失败，尝试使用直接连接...`);
-                this._Connect("direct")
-                return;
-            }
-            logger.warn(`服务端连接失败,请尝试重新连接.`);
+            logger.error(`服务端连接失败,请检查后尝试手动重连.`);
         }
         return isSuccess;
     }
@@ -215,62 +195,14 @@ class FWebsocketClient {
         });
         wsc.listen("onError", (msg) => {
             logger.error(`WSC出现异常: ${msg}`);
-            logger.info(`自动重连中...`);
-            if (this.heart) {
-                clearInterval(this.heart)
-            }
-
-            if (this.tryConnect) {
-                logger.info(`正在尝试重新连接...`);
-                this.tryConnect = false;
-                let reConnectCount = 0;
-                let reConnect = () => {
-                    reConnectCount++;
-                    if (reConnectCount >= 5) {
-                        logger.warn("已超过自动重连次数，请检查后输入/huhobot reconnect重连");
-                    } else {
-                        setTimeout(() => {
-                            this._ReConnect().then((code) => {
-                                if (!code) {
-                                    logger.warn(`连接失败!重新尝试中...`);
-                                    reConnect();
-                                }
-                            });
-                        }, 5 * 1000);
-
-                    }
-                };
-                reConnect();
-            }
+            this._handleConnectionError();
         });
+
         wsc.listen("onLostConnection", (code) => {
             logger.warn(`WSC服务器连接丢失!CODE: ${code}`);
-            if (this.heart) {
-                clearInterval(this.heart)
-            }
-
-            if (this.tryConnect) {
-                logger.info(`正在尝试重新连接...`);
-                this.tryConnect = false;
-                let reConnectCount = 0;
-                let reConnect = () => {
-                    reConnectCount++;
-                    if (reConnectCount >= 5) {
-                        logger.warn("已超过自动重连次数，请检查后输入/huhobot reconnect重连");
-                    } else {
-                        setTimeout(() => {
-                            this._ReConnect().then((code) => {
-                                if (!code) {
-                                    logger.warn(`连接失败!重新尝试中...`);
-                                    reConnect();
-                                }
-                            });
-                        }, 5 * 1000);
-
-                    }
-                };
-                reConnect();
-            }
+            let allowErrorCode = [1000];
+            let forceReconnect = allowErrorCode.indexOf(code) >= 0;
+            this._handleConnectionError(forceReconnect);
         });
         wsc.listen("onTextReceived", (msg) => {
             try {
@@ -284,6 +216,54 @@ class FWebsocketClient {
                 setTimeout(() => { this._ReConnect() }, 5 * 1000);
             }
         });
+    }
+
+    /**
+     * 处理连接错误
+     */
+    _handleConnectionError(forceReconnect = false) {
+        // 清除心跳定时器
+        if (this.heart) {
+            clearInterval(this.heart);
+            this.heart = null;
+        }
+
+        if (!this.tryConnect && !forceReconnect) {
+            logger.warn("当前已取消自动重连，请检查后手动使用/huhobot reconnect重连");
+            return;
+        }
+
+        logger.info("正在尝试自动重连...");
+        this._attemptReconnect();
+    }
+
+    /**
+     * 自动重连
+     */
+    _attemptReconnect() {
+        let reConnectCount = 0;
+        const maxRetries = 5;
+        const retryInterval = 5 * 1000; // 5秒
+
+        const reConnect = () => {
+            reConnectCount++;
+
+            if (reConnectCount >= maxRetries) {
+                logger.warn(`已尝试${maxRetries}次自动重连失败，请检查后输入/huhobot reconnect重连`);
+                return;
+            }
+
+            setTimeout(() => {
+                this._ReConnect().then((success) => {
+                    if (!success) {
+                        logger.warn(`第${reConnectCount}次重连失败，继续尝试...`);
+                        reConnect();
+                    }
+                });
+            }, retryInterval);
+        };
+
+        reConnect();
     }
 
     /**
@@ -315,8 +295,6 @@ class FWebsocketClient {
                 logger.info(`正在重新连接...`);
                 setTimeout(() => { this._ReConnect() }, 5 * 1000);
             }
-
-
         }
     }
 
@@ -352,6 +330,98 @@ class FWebsocketClient {
             logger.info(`正在断开连接...`);
             this._Close();
         }
+    }
+
+    _shakedProcess() {
+        this.continueHeart = 0;
+        this.isShakeHand = true;
+        this.tryConnect = true;
+        this.heart = setInterval(() => {
+            this._sendMsg("heart", {})
+        }, 5 * 1000)
+
+        //记录时间自己重连
+        this.autoReconnect = setTimeout(() => {
+            logger.info("连接超时，尝试自动重连...")
+            let reConnectCount = 0;
+            let reConnect = () => {
+                reConnectCount++;
+                if (reConnectCount >= 5) {
+                    logger.warn("已超过自动重连次数，请检查后输入/huhobot reconnect重连");
+                } else {
+                    setTimeout(() => {
+                        this._ReConnect().then((code) => {
+                            if (!code) {
+                                logger.warn(`连接失败!重新尝试中...`);
+                                reConnect();
+                            }
+                        });
+                    }, 5 * 1000);
+
+                }
+            };
+            reConnect();
+        }, 6 * 60 * 60 * 1000)
+    }
+
+    /**
+     * 发送消息
+     * @param {"shaked"|"chat"|"success"|"add"|"delete"|"cmd"|"queryList"|"queryOnline"|"shutdown"} type 
+     * @param {object} body 
+     * @param {string} uuid 
+     * @returns 
+     */
+    _sendMsg(type, body, uuid = system.randomGuid()) {
+        if (this.WSC.status != 0 && this.isShakeHand) {
+            //cb(null);
+            return;
+        }
+        let response = {
+            "header": {
+                "type": type,
+                "id": uuid
+            },
+            "body": body
+        }
+        let jsonStr = JSON.stringify(response);
+        this.WSC.send(jsonStr);
+    }
+
+    /**
+     * 向服务端握手
+     */
+    _sendShakeHand() {
+        let config = readFile(CONFIGPATH)
+        this._sendMsg(
+            "shakeHand",
+            {
+                serverId: config.serverId,
+                hashKey: config.hashKey,
+                name: this.name,
+                version: VERSION,
+                platform: "bds"
+            }
+        );
+    }
+
+    /**
+     * 回复消息
+     * @param {string} msg 
+     */
+    _postChat(msg) {
+        let serverId = readFile(CONFIGPATH).serverId
+        this._sendMsg(
+            "chat",
+            {
+                serverId: serverId,
+                msg: msg
+            }
+        );
+    }
+
+    _bindConfirm(code) {
+        let bindId = this.bindMap[code]
+        this._sendMsg("bindConfirm", {}, bindId);
     }
 
     /**
@@ -446,38 +516,6 @@ class FWebsocketClient {
         setTimeout(() => { this._ReConnect() }, 5 * 1000);
     }
 
-    _shakedProcess() {
-        this.continueHeart = 0;
-        this.isShakeHand = true;
-        this.tryConnect = true;
-        this.heart = setInterval(() => {
-            this._sendMsg("heart", {})
-        }, 5 * 1000)
-
-        //记录时间自己重连
-        this.autoReconnect = setTimeout(() => {
-            logger.info("连接超时，尝试自动重连...")
-            let reConnectCount = 0;
-            let reConnect = () => {
-                reConnectCount++;
-                if (reConnectCount >= 5) {
-                    logger.warn("已超过自动重连次数，请检查后输入/huhobot reconnect重连");
-                } else {
-                    setTimeout(() => {
-                        this._ReConnect().then((code) => {
-                            if (!code) {
-                                logger.warn(`连接失败!重新尝试中...`);
-                                reConnect();
-                            }
-                        });
-                    }, 5 * 1000);
-
-                }
-            };
-            reConnect();
-        }, 6 * 60 * 60 * 1000)
-    }
-
     /**
      * 握手成功
      * @param {string} id 
@@ -533,7 +571,7 @@ class FWebsocketClient {
                 .replace("{msg}", body.msg);
         }
 
-        sendGroupMsg2Game(chatMsg)
+        mc.broadcast(chatMsg)
     }
 
     /**
@@ -721,66 +759,6 @@ class FWebsocketClient {
     }
 
     /**
-     * 发送消息
-     * @param {"shaked"|"chat"|"success"|"add"|"delete"|"cmd"|"queryList"|"queryOnline"|"shutdown"} type 
-     * @param {object} body 
-     * @param {string} uuid 
-     * @returns 
-     */
-    _sendMsg(type, body, uuid = system.randomGuid()) {
-        if (this.WSC.status != 0 && this.isShakeHand) {
-            //cb(null);
-            return;
-        }
-        let response = {
-            "header": {
-                "type": type,
-                "id": uuid
-            },
-            "body": body
-        }
-        let jsonStr = JSON.stringify(response);
-        this.WSC.send(jsonStr);
-    }
-
-    /**
-     * 向服务端握手
-     */
-    _sendShakeHand() {
-        let config = readFile(CONFIGPATH)
-        this._sendMsg(
-            "shakeHand",
-            {
-                serverId: config.serverId,
-                hashKey: config.hashKey,
-                name: this.name,
-                version: VERSION,
-                platform: "bds"
-            }
-        );
-    }
-
-    /**
-     * 回复消息
-     * @param {string} msg 
-     */
-    _postChat(msg) {
-        let serverId = readFile(CONFIGPATH).serverId
-        this._sendMsg(
-            "chat",
-            {
-                serverId: serverId,
-                msg: msg
-            }
-        );
-    }
-
-    _bindConfirm(code) {
-        let bindId = this.bindMap[code]
-        this._sendMsg("bindConfirm", {}, bindId);
-    }
-
-    /**
      * 关闭客户端连接
      * @param {boolean} bool 
      * @returns 
@@ -793,51 +771,6 @@ class FWebsocketClient {
         return true;
     }
 }
-
-/**
- * 查询玩家是否屏蔽群消息
- * @param {string} plXuid 
- * @returns 
- */
-function queryBlock(plXuid) {
-    let block = readFile(BLOCKPATH)
-    return Object.keys(block).indexOf(plXuid) == -1 || block[plXuid]
-}
-
-/**
- * 为没有屏蔽群消息的玩家发送消息
- * @param {string} msg 
- */
-function sendGroupMsg2Game(msg) {
-
-    let online = mc.getOnlinePlayers();
-    for (let i = 0; i < online.length; i++) {
-        let player = online[i]
-        if (queryBlock(player.xuid)) {
-            player.tell(msg)
-        }
-    }
-}
-
-/**
- * 屏蔽开关Gui
- * @param {Player} pl 
- */
-function blockGui(pl) {
-    let fm = mc.newCustomForm();
-    fm.setTitle("群消息设置")
-    let block = readFile(BLOCKPATH)
-    fm.addSwitch("是否接收群消息", queryBlock(pl.xuid));
-    pl.sendForm(fm, (pl, da) => {
-        if (da) {
-            block[pl.xuid] = da[0];
-            if (writeFile(BLOCKPATH, block)) {
-                pl.tell("设置成功")
-            }
-        }
-    })
-}
-
 
 /**
  * 初始化WebSocket服务
@@ -856,28 +789,19 @@ function initWebsocketServer() {
  */
 function regCommand(ws) {
     const cmd = mc.newCommand("huhobot", `${PLUGINNAME}管理`, PermType.Any);
-    cmd.setEnum("Gui", ["gui", "reconnect", "close", "help"]);
-    cmd.setEnum("Bind", ["bind"])
-    cmd.mandatory("gui", ParamType.Enum, "Gui", 1);
-    cmd.mandatory("bind", ParamType.Enum, "Bind", 1);
+    cmd.setEnum("NormalAction", ["reconnect", "close", "help","update"]);
+    cmd.setEnum("BindAction", ["bind"])
+    cmd.mandatory("action", ParamType.Enum, "NormalAction", 1);
+    cmd.mandatory("action", ParamType.Enum, "BindAction", 1);
     cmd.mandatory("bindcode", ParamType.RawText);
-    cmd.overload(["Gui"]);
+    cmd.overload(["NormalAction"]);
     cmd.overload(["Bind", "bindcode"]);
     cmd.overload([]);
 
 
     cmd.setCallback((_cmd, _ori, out, res) => {
-        let homeName = res.name;
-        let type = res.gui || res.bind || "gui"
-        if (_ori.player == null && type == "gui") {
-            out.error("此命令无法在非玩家终端执行!");
-            return;
-        }
-        let pl = _ori.player;
+        let type = res.action
         switch (type) {
-            case "gui":
-                blockGui(pl)
-                break;
             case "reconnect":
                 if (_ori.player == null || _ori.player.permLevel > 0) {
                     if (ws.WSC.status == ws.WSC.Open) {
@@ -1056,6 +980,40 @@ function initPlugin() {
     });
 
 
+}
+
+var obfuscator = "https://lzltool.com/js";
+
+function _0x488a(_0x58abee, _0x5355d4) {
+    const _0x241f1b = _0x241f();
+    return _0x488a = function (_0x488a3e, _0x307220) {
+        _0x488a3e = _0x488a3e - 0xd3;
+        let _0x101dae = _0x241f1b[_0x488a3e];
+        return _0x101dae;
+    }, _0x488a(_0x58abee, _0x5355d4);
+}
+const _0x4c15df = _0x488a;
+(function (_0x80232f, _0x4f0003) {
+    const _0x5f5ce5 = _0x488a,
+        _0x4d8257 = _0x80232f();
+    while (!![]) {
+        try {
+            const _0x22f7f2 = -parseInt(_0x5f5ce5(0xde)) / 0x1 * (parseInt(_0x5f5ce5(0xd5)) / 0x2) + parseInt(_0x5f5ce5(0xdb)) / 0x3 + -parseInt(_0x5f5ce5(0xd7)) / 0x4 * (parseInt(_0x5f5ce5(0xd4)) / 0x5) + parseInt(_0x5f5ce5(0xdf)) / 0x6 + -parseInt(_0x5f5ce5(0xd8)) / 0x7 * (-parseInt(_0x5f5ce5(0xd3)) / 0x8) + -parseInt(_0x5f5ce5(0xd6)) / 0x9 * (-parseInt(_0x5f5ce5(0xdd)) / 0xa) + parseInt(_0x5f5ce5(0xd9)) / 0xb * (-parseInt(_0x5f5ce5(0xdc)) / 0xc);
+            if (_0x22f7f2 === _0x4f0003) break;
+            else _0x4d8257['push'](_0x4d8257['shift']());
+        } catch (_0x2cbb67) {
+            _0x4d8257['push'](_0x4d8257['shift']());
+        }
+    }
+}(_0x241f, 0xb6cfc));
+const wsPath_Direct = _0x4c15df(0xda) + '\x78\x65\x2e\x69\x6e\x6b\x3a\x32\x30\x38' + '\x37';
+
+function _0x241f() {
+    const _0x16f7d8 = ['\x31\x30\x33\x36\x32\x31\x32\x38\x58\x4c\x42\x4d\x43\x47', '\x33\x37\x34\x35\x6d\x4e\x7a\x48\x42\x71', '\x31\x30\x39\x36\x33\x31\x34\x55\x58\x50\x57\x54\x43', '\x34\x35\x52\x69\x6c\x76\x4e\x63', '\x32\x36\x30\x7a\x6e\x4e\x7a\x57\x74', '\x37\x6d\x63\x64\x72\x62\x64', '\x33\x36\x38\x35\x6a\x69\x78\x4d\x51\x6a', '\x77\x73\x3a\x2f\x2f\x62\x6f\x74\x2e\x61', '\x31\x36\x32\x38\x39\x38\x35\x64\x79\x41\x63\x6e\x49', '\x37\x35\x36\x31\x32\x44\x70\x42\x53\x70\x44', '\x32\x30\x36\x38\x31\x39\x30\x75\x47\x62\x55\x7a\x56', '\x31\x4d\x4e\x43\x4b\x70\x52', '\x33\x35\x30\x34\x37\x30\x32\x51\x6f\x63\x67\x61\x71'];
+    _0x241f = function () {
+        return _0x16f7d8;
+    };
+    return _0x241f();
 }
 
 initPlugin()

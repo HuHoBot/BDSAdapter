@@ -1,4 +1,4 @@
-# HuHoBot-BDS-Adapter v0.2.6
+# HuHoBot-BDS-Adapter v0.2.7
 
-- **feat(Websocket)**: 回退至`ws://`协议，增加版本稳定性
+- **refactor(Websocket)**: 重构 WebSocket 自动连接逻辑
 
