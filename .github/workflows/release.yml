@@ -161,7 +161,12 @@ jobs:
         with: 
           resources: '9384'
           token: ${{ secrets.MINEBBSKEY }}
-          title: ${{ github.ref_name }}
+          title: HuHoBot-BDS-Adapter ${{ github.ref_name }}
           new_version: ${{ github.ref_name }}
-          description_file: './CHANGELOG.md'
+          description: |
+            ${{ steps.changelog.outputs.body }}
+
+            ### 构建信息
+            - 构建时间: ${{ steps.get-time.outputs.TIME }}
+            - 提交哈希: [${{ github.sha }}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
           file_url: 'https://github.com/HuHoBot/BDSAdapter/releases/latest'
