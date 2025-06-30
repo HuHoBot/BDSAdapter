@@ -3,7 +3,7 @@
 
 const UPDATEURL = "https://release.huhobot.txssb.cn/lse/HuHoBot-BDS-{VERSION}.js"
 const LATESTURL = "https://release.huhobot.txssb.cn/lse/latest.json"
-const VERSION = "0.2.7"
+const VERSION = "0.2.8"
 const CONFIG_VERSION = 4
 const PLUGINNAME = 'HuHoBot'
 const PATH = `plugins/${PLUGINNAME}/`
@@ -195,7 +195,8 @@ class FWebsocketClient {
         });
         wsc.listen("onError", (msg) => {
             logger.error(`WSC出现异常: ${msg}`);
-            this._handleConnectionError();
+            let forceReconnect = msg.indexOf("select") >= 0;
+            this._handleConnectionError(forceReconnect);
         });
 
         wsc.listen("onLostConnection", (code) => {
@@ -789,18 +790,18 @@ function initWebsocketServer() {
  */
 function regCommand(ws) {
     const cmd = mc.newCommand("huhobot", `${PLUGINNAME}管理`, PermType.Any);
-    cmd.setEnum("NormalAction", ["reconnect", "close", "help","update"]);
+    cmd.setEnum("NormalAction", ["reconnect", "close", "help", "update"]);
     cmd.setEnum("BindAction", ["bind"])
-    cmd.mandatory("action", ParamType.Enum, "NormalAction", 1);
-    cmd.mandatory("action", ParamType.Enum, "BindAction", 1);
+    cmd.mandatory("naction", ParamType.Enum, "NormalAction", 1);
+    cmd.mandatory("baction", ParamType.Enum, "BindAction", 1);
     cmd.mandatory("bindcode", ParamType.RawText);
-    cmd.overload(["NormalAction"]);
-    cmd.overload(["Bind", "bindcode"]);
+    cmd.overload(["naction"]);
+    cmd.overload(["baction", "bindcode"]);
     cmd.overload([]);
 
 
     cmd.setCallback((_cmd, _ori, out, res) => {
-        let type = res.action
+        let type = res.naction || res.baction || "help"
         switch (type) {
             case "reconnect":
                 if (_ori.player == null || _ori.player.permLevel > 0) {
@@ -855,6 +856,9 @@ function regCommand(ws) {
                 out.success("- /huhobot update: 更新插件版本");
                 out.success("- /huhobot help: 显示帮助列表");
                 break
+            default:
+                out.error("未知命令.")
+                break;
         }
     });
     cmd.setup();
