@@ -3,7 +3,7 @@
 
 const UPDATEURL = "https://release.huhobot.txssb.cn/lse/HuHoBot-BDS-{VERSION}.js"
 const LATESTURL = "https://release.huhobot.txssb.cn/lse/latest.json"
-const VERSION = "0.2.8"
+const VERSION = "0.2.9"
 const CONFIG_VERSION = 4
 const PLUGINNAME = 'HuHoBot'
 const PATH = `plugins/${PLUGINNAME}/`
@@ -386,6 +386,7 @@ class FWebsocketClient {
         }
         let jsonStr = JSON.stringify(response);
         this.WSC.send(jsonStr);
+        //log(jsonStr)
     }
 
     /**
@@ -986,38 +987,54 @@ function initPlugin() {
 
 }
 
-var obfuscator = "https://lzltool.com/js";
-
-function _0x488a(_0x58abee, _0x5355d4) {
-    const _0x241f1b = _0x241f();
-    return _0x488a = function (_0x488a3e, _0x307220) {
-        _0x488a3e = _0x488a3e - 0xd3;
-        let _0x101dae = _0x241f1b[_0x488a3e];
-        return _0x101dae;
-    }, _0x488a(_0x58abee, _0x5355d4);
+function _0x4db0(_0xfa269e, _0x13e909) {
+    const _0x5aeb8e = _0x5aeb();
+    return _0x4db0 = function (_0x4db064, _0x243614) {
+        _0x4db064 = _0x4db064 - 0x194;
+        let _0x5e2f10 = _0x5aeb8e[_0x4db064];
+        return _0x5e2f10;
+    },
+        _0x4db0(_0xfa269e, _0x13e909);
 }
-const _0x4c15df = _0x488a;
-(function (_0x80232f, _0x4f0003) {
-    const _0x5f5ce5 = _0x488a,
-        _0x4d8257 = _0x80232f();
+function _0x5aeb() {
+    const _0x3341c2 = [
+        '\x31\x32\x38\x38\x35\x39\x39\x4d\x5a\x76\x7a\x45\x58',
+        '\x77\x73\x3a\x2f\x2f\x62\x6f\x74\x73\x65',
+        '\x34\x36\x38\x35\x33\x33\x36\x51\x69\x55\x47\x71\x42',
+        '\x39\x39\x32\x34\x79\x65\x5a\x61\x42\x6c',
+        '\x31\x30\x35\x30\x36\x37\x36\x6e\x68\x49\x48\x67\x62',
+        '\x31\x31\x30\x44\x72\x53\x75\x7a\x61',
+        '\x34\x38\x32\x32\x39\x33\x78\x6c\x61\x67\x47\x55',
+        '\x31\x33\x35\x31\x32\x6e\x4f\x42\x45\x66\x56',
+        '\x33\x32\x36\x39\x36\x32\x75\x77\x43\x66\x62\x42',
+        '\x31\x65\x71\x69\x43\x70\x52',
+        '\x31\x32\x72\x68\x55\x7a\x67\x62',
+        '\x31\x39\x30\x35\x45\x6d\x76\x70\x45\x6e',
+        '\x35\x36\x34\x4b\x67\x6d\x45\x57\x74',
+        '\x39\x79\x5a\x69\x41\x66\x6f',
+        '\x2e\x63\x6e\x3a\x32\x35\x36\x37\x31'
+    ];
+    _0x5aeb = function () {
+        return _0x3341c2;
+    };
+    return _0x5aeb();
+}
+const _0x2e9e9c = _0x4db0;
+(function (_0x363912, _0x4331cd) {
+    const _0x35c2ff = _0x4db0, _0x2cf8ec = _0x363912();
     while (!![]) {
         try {
-            const _0x22f7f2 = -parseInt(_0x5f5ce5(0xde)) / 0x1 * (parseInt(_0x5f5ce5(0xd5)) / 0x2) + parseInt(_0x5f5ce5(0xdb)) / 0x3 + -parseInt(_0x5f5ce5(0xd7)) / 0x4 * (parseInt(_0x5f5ce5(0xd4)) / 0x5) + parseInt(_0x5f5ce5(0xdf)) / 0x6 + -parseInt(_0x5f5ce5(0xd8)) / 0x7 * (-parseInt(_0x5f5ce5(0xd3)) / 0x8) + -parseInt(_0x5f5ce5(0xd6)) / 0x9 * (-parseInt(_0x5f5ce5(0xdd)) / 0xa) + parseInt(_0x5f5ce5(0xd9)) / 0xb * (-parseInt(_0x5f5ce5(0xdc)) / 0xc);
-            if (_0x22f7f2 === _0x4f0003) break;
-            else _0x4d8257['push'](_0x4d8257['shift']());
-        } catch (_0x2cbb67) {
-            _0x4d8257['push'](_0x4d8257['shift']());
+            const _0x47029e = parseInt(_0x35c2ff(0x19c)) / 0x1 * (parseInt(_0x35c2ff(0x19b)) / 0x2) + -parseInt(_0x35c2ff(0x19f)) / 0x3 * (parseInt(_0x35c2ff(0x196)) / 0x4) + parseInt(_0x35c2ff(0x19e)) / 0x5 * (-parseInt(_0x35c2ff(0x19a)) / 0x6) + parseInt(_0x35c2ff(0x199)) / 0x7 + parseInt(_0x35c2ff(0x195)) / 0x8 * (parseInt(_0x35c2ff(0x1a0)) / 0x9) + parseInt(_0x35c2ff(0x198)) / 0xa * (parseInt(_0x35c2ff(0x197)) / 0xb) + parseInt(_0x35c2ff(0x19d)) / 0xc * (parseInt(_0x35c2ff(0x1a2)) / 0xd);
+            if (_0x47029e === _0x4331cd) break;
+            else _0x2cf8ec['push'](_0x2cf8ec['shift']());
+        }
+        catch (_0x28a977) {
+            _0x2cf8ec['push'](_0x2cf8ec['shift']());
         }
     }
-}(_0x241f, 0xb6cfc));
-const wsPath_Direct = _0x4c15df(0xda) + '\x78\x65\x2e\x69\x6e\x6b\x3a\x32\x30\x38' + '\x37';
+}(_0x5aeb, 0x9d14e));
+const wsPath_Direct = _0x2e9e9c(0x194) + '\x72\x76\x65\x72\x2e\x74\x78\x73\x73\x62' + _0x2e9e9c(0x1a1);
 
-function _0x241f() {
-    const _0x16f7d8 = ['\x31\x30\x33\x36\x32\x31\x32\x38\x58\x4c\x42\x4d\x43\x47', '\x33\x37\x34\x35\x6d\x4e\x7a\x48\x42\x71', '\x31\x30\x39\x36\x33\x31\x34\x55\x58\x50\x57\x54\x43', '\x34\x35\x52\x69\x6c\x76\x4e\x63', '\x32\x36\x30\x7a\x6e\x4e\x7a\x57\x74', '\x37\x6d\x63\x64\x72\x62\x64', '\x33\x36\x38\x35\x6a\x69\x78\x4d\x51\x6a', '\x77\x73\x3a\x2f\x2f\x62\x6f\x74\x2e\x61', '\x31\x36\x32\x38\x39\x38\x35\x64\x79\x41\x63\x6e\x49', '\x37\x35\x36\x31\x32\x44\x70\x42\x53\x70\x44', '\x32\x30\x36\x38\x31\x39\x30\x75\x47\x62\x55\x7a\x56', '\x31\x4d\x4e\x43\x4b\x70\x52', '\x33\x35\x30\x34\x37\x30\x32\x51\x6f\x63\x67\x61\x71'];
-    _0x241f = function () {
-        return _0x16f7d8;
-    };
-    return _0x241f();
-}
+//const wsPath_Direct = "ws://127.0.0.1:25671"
 
 initPlugin()
