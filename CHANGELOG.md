@@ -1,4 +1,3 @@
-# HuHoBot-BDS-Adapter v0.3.0
+# HuHoBot-BDS-Adapter v0.3.1
 
-- **fix(Websocket)**: 修复部分情况下出现1006不连接的情况
-- **feat(Config)**: 添加callbackConvert字段
+- **fix(Respone)**: 修复Respone时无法上报的问题

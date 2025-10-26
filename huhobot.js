@@ -3,7 +3,7 @@
 
 const UPDATEURL = "https://release.huhobot.txssb.cn/lse/HuHoBot-BDS-{VERSION}.js"
 const LATESTURL = "https://release.huhobot.txssb.cn/lse/latest.json"
-const VERSION = "0.3.0"
+const VERSION = "0.3.1"
 const CONFIG_VERSION = 5
 const PLUGINNAME = 'HuHoBot'
 const PATH = `plugins/${PLUGINNAME}/`
@@ -275,6 +275,7 @@ class FWebsocketClient {
      * @param {string} uuid 
      */
     _Respone(msg, groupId, type, uuid = "") {
+        let config = readFile(CONFIGPATH)
         let callbackConvert = config.callbackConvert;
         this._sendMsg(type, { msg: msg, group: groupId, callbackConvert }, uuid)
     }
