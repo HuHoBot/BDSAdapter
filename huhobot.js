@@ -3,7 +3,7 @@
 
 const UPDATEURL = "https://release.huhobot.txssb.cn/lse/HuHoBot-BDS-{VERSION}.js"
 const LATESTURL = "https://release.huhobot.txssb.cn/lse/latest.json"
-const VERSION = "0.3.1"
+const VERSION = "0.3.2"
 const CONFIG_VERSION = 5
 const PLUGINNAME = 'HuHoBot'
 const PATH = `plugins/${PLUGINNAME}/`
@@ -276,8 +276,8 @@ class FWebsocketClient {
      */
     _Respone(msg, groupId, type, uuid = "") {
         let config = readFile(CONFIGPATH)
-        let callbackConvert = config.callbackConvert;
-        this._sendMsg(type, { msg: msg, group: groupId, callbackConvert }, uuid)
+        let callbackConvertImg = config.callbackConvertImg;
+        this._sendMsg(type, { msg: msg, group: groupId, callbackConvert: callbackConvertImg }, uuid)
     }
 
     /**
@@ -375,6 +375,7 @@ class FWebsocketClient {
      * @returns 
      */
     _sendMsg(type, body, uuid = system.randomGuid()) {
+    
         if (this.WSC.status != 0 && this.isShakeHand) {
             //cb(null);
             return;
