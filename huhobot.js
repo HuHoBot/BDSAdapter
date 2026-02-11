@@ -2,7 +2,7 @@
 /// <reference path="E:\\MCServer\\HelperLib\\src\\index.d.ts"/>
 
 const UPDATEURL =
-    "https://release.huhobot.txssb.cn/lse/HuHoBot-BDS-{VERSION}.js";
+  "https://release.huhobot.txssb.cn/lse/HuHoBot-BDS-{VERSION}.js";
 const LATESTURL = "https://release.huhobot.txssb.cn/lse/latest.json";
 const VERSION = "0.3.3";
 const CONFIG_VERSION = 6;
@@ -11,12 +11,30 @@ const PATH = `plugins/${PLUGINNAME}/`;
 const CONFIGPATH = `${PATH}config.json`;
 const BLOCKPATH = `${PATH}blockMsg.json`;
 const BDSALLOWLISTPATH = "allowlist.json";
+const RECONNECT_INTERVAL = 5000;
+const MAX_RECONNECT_RETRIES = 5;
+const ALLOWLIST_PAGE_SIZE = 10;
+const HEARTBEAT_INTERVAL = 5000;
+const AUTO_RECONNECT_TIMEOUT = 6 * 60 * 60 * 1000;
 
-var WebsocketObject = null;
+let WebsocketObject = null;
+let cachedConfig = null;
+
+/**
+ * 获取配置（带缓存）
+ * @param {boolean} forceReload 是否强制重新读取
+ * @returns {Object}
+ */
+function getConfig(forceReload = false) {
+  if (!cachedConfig || forceReload) {
+    cachedConfig = readFile(CONFIGPATH);
+  }
+  return cachedConfig;
+}
 
 let callbackEvent = {
-    run: {},
-    runAdmin: {},
+  run: {},
+  runAdmin: {},
 };
 
 logger.setTitle(PLUGINNAME);
@@ -27,12 +45,12 @@ logger.setTitle(PLUGINNAME);
  * @returns
  */
 function readFile(file) {
-    try {
-        return JSON.parse(File.readFrom(file));
-    } catch (_) {
-        logger.error("文件读取出错，请尝试清空数据");
-        return {};
-    }
+  try {
+    return JSON.parse(File.readFrom(file));
+  } catch (_) {
+    logger.error("文件读取出错，请尝试清空数据");
+    return {};
+  }
 }
 
 /**
@@ -42,7 +60,7 @@ function readFile(file) {
  * @returns
  */
 function writeFile(file, data) {
-    return File.writeTo(file, JSON.stringify(data, null, "\t"));
+  return File.writeTo(file, JSON.stringify(data, null, "\t"));
 }
 
 /**
@@ -52,16 +70,16 @@ function writeFile(file, data) {
  * @returns
  */
 function paginateArray(array, itemsPerPage) {
-    let pages = [];
-    try {
-        for (let i = 0; i < array.length; i += itemsPerPage) {
-            pages.push(array.slice(i, i + itemsPerPage));
-        }
-    } catch (_) {
-        pages.push("白名单解析出现异常,请管理员检查白名单");
+  let pages = [];
+  try {
+    for (let i = 0; i < array.length; i += itemsPerPage) {
+      pages.push(array.slice(i, i + itemsPerPage));
     }
+  } catch (_) {
+    pages.push("白名单解析出现异常,请管理员检查白名单");
+  }
 
-    return pages;
+  return pages;
 }
 
 /**
@@ -72,15 +90,15 @@ function paginateArray(array, itemsPerPage) {
  * @returns
  */
 function filterByKeyword(array, keyword, caseInsensitive = true) {
-    // 使用filter方法查询包含关键词的元素
-    return array.filter((item) => {
-        // 如果需要大小写不敏感的搜索，将item和keyword都转换为小写
-        if (caseInsensitive) {
-            return item.toLowerCase().includes(keyword.toLowerCase());
-        } else {
-            return item.includes(keyword);
-        }
-    });
+  // 使用filter方法查询包含关键词的元素
+  return array.filter((item) => {
+    // 如果需要大小写不敏感的搜索，将item和keyword都转换为小写
+    if (caseInsensitive) {
+      return item.toLowerCase().includes(keyword.toLowerCase());
+    } else {
+      return item.includes(keyword);
+    }
+  });
 }
 
 /**
@@ -92,805 +110,751 @@ function filterByKeyword(array, keyword, caseInsensitive = true) {
  * @returns boolean 是否注册成功
  */
 function regCallbackEvent(callType, keyWord, nameSpace, funcName) {
-    if (!ll.hasExported(nameSpace, funcName)) {
-        return false;
-    }
-    let func = ll.imports(nameSpace, funcName);
-    if (Object.keys(callbackEvent).indexOf(callType) == -1) {
-        return false;
-    }
-    if (Object.keys(callbackEvent[callType]).indexOf(keyWord) != -1) {
-        return false;
-    }
-    callbackEvent[callType][keyWord] = func;
-    logger.info(
-        `注册${callType}类型事件: 关键词(${keyWord}) 回调函数(${nameSpace}::${funcName}) 成功`,
-    );
-    return true;
+  if (!ll.hasExported(nameSpace, funcName)) {
+    return false;
+  }
+  let func = ll.imports(nameSpace, funcName);
+  if (!(callType in callbackEvent)) {
+    return false;
+  }
+  if (keyWord in callbackEvent[callType]) {
+    return false;
+  }
+  callbackEvent[callType][keyWord] = func;
+  logger.info(
+    `注册${callType}类型事件: 关键词(${keyWord}) 回调函数(${nameSpace}::${funcName}) 成功`,
+  );
+  return true;
 }
 
 class FWebsocketClient {
-    constructor(name, log) {
-        this.name = name;
-        this.log = log;
-        let WSC = new WSClient();
-        this.WSC = WSC;
-        WSC.Open = 0;
-        WSC.Closing = 1;
-        WSC.Closed = 2;
-        this.isShakeHand = false;
-        this.tryConnect = false;
-        this.heart = null;
+  constructor(name, log) {
+    this.name = name;
+    this.log = log;
+    let WSC = new WSClient();
+    this.WSC = WSC;
+    WSC.Open = 0;
+    WSC.Closing = 1;
+    WSC.Closed = 2;
+    this.isShakeHand = false;
+    this.tryConnect = false;
+    this.heart = null;
 
-        //事件监听
-        this.Events = {
-            shaked: null,
-            chat: null,
-            success: null,
-            add: null,
-            delete: null,
-            cmd: null,
-            queryList: null,
-            queryOnline: null,
-            shutdown: null,
-        };
+    //事件监听
+    this.Events = {
+      shaked: null,
+      chat: null,
+      success: null,
+      add: null,
+      delete: null,
+      cmd: null,
+      queryList: null,
+      queryOnline: null,
+      shutdown: null,
+    };
 
-        this.autoReconnect = null;
+    this.autoReconnect = null;
 
-        this.bindMap = {};
+    this.bindMap = {};
 
-        this._InitMsgProcess();
+    this._InitMsgProcess();
+  }
+
+  _ConnectDone(isSuccess) {
+    if (isSuccess) {
+      logger.info(`服务端连接成功!`);
+      logger.info(`开始握手...`);
+      this._sendShakeHand();
+    } else {
+      logger.error(`服务端连接失败,请检查后尝试手动重连.`);
+    }
+  }
+
+  /**
+   * 连接服务器
+   * @param {"nginx"|"direct"|"local"} connectLinkType
+   * @returns boolean 是否连接成功.
+   */
+  _Connect() {
+    let config = getConfig();
+    let connectMethod = config.connectMethod || 0;
+
+    if (connectMethod == 0) {
+      logger.info(`正在使用同步方法连接服务器...`);
+      let isSuccess = this.WSC.connect(wsPath_Direct);
+      this._ConnectDone(isSuccess);
+      return isSuccess;
+    } else {
+      logger.info(`正在使用异步方法连接服务器...`);
+      let isSuccess = this.WSC.connectAsync(wsPath_Direct, (success) => {
+        this._ConnectDone(success);
+      });
+      return isSuccess;
+    }
+  }
+
+  /**
+   * 重连服务器
+   * 注意：异步连接模式下 _Connect 的返回值不代表最终连接结果，
+   * 但保留 Promise 结构以兼容现有调用链。
+   * @returns
+   */
+  _ReConnect() {
+    this._Close();
+    let config = getConfig();
+    this.name = config.serverName;
+    let isSuccess = this._Connect();
+    return new Promise((cBack, _cErr) => {
+      cBack(isSuccess);
+    });
+  }
+
+  /**
+   * 断开与服务器连接
+   * @returns
+   */
+  _Close() {
+    this.isShakeHand = false;
+    this.tryConnect = false;
+    if (this.WSC.status == this.WSC.Open) {
+      return this.close(false);
+    }
+    return this.close(true);
+  }
+
+  /**
+   * Websocket内置方法-设定监听消息
+   */
+  _InitMsgProcess() {
+    let wsc = this.WSC;
+    wsc.listen("onBinaryReceived", (data) => {
+      logger.warn("客户端不支持Binary消息!自动断开!");
+      this._Close();
+    });
+    wsc.listen("onError", (msg) => {
+      logger.error(`WSC出现异常: ${msg}`);
+      let forceReconnect = msg.indexOf("select") >= 0;
+      this._handleConnectionError(forceReconnect);
+    });
+
+    wsc.listen("onLostConnection", (code) => {
+      logger.warn(`WSC服务器连接丢失!CODE: ${code}`);
+      let allowErrorCode = [1006];
+      let forceReconnect = allowErrorCode.indexOf(code) >= 0;
+      this._handleConnectionError(forceReconnect);
+    });
+    wsc.listen("onTextReceived", (msg) => {
+      try {
+        let json = JSON.parse(msg);
+        //log(json)
+        this._processMessage(json.header, json.body);
+      } catch (_) {
+        logger.error(_);
+        logger.error(`WSC无法解析接收到的字符串!`);
+        logger.info(`重新尝试连接...`);
+        setTimeout(() => {
+          this._ReConnect();
+        }, RECONNECT_INTERVAL);
+      }
+    });
+  }
+
+  /**
+   * 处理连接错误
+   */
+  _handleConnectionError(forceReconnect = false) {
+    // 清除心跳定时器
+    if (this.heart) {
+      clearInterval(this.heart);
+      this.heart = null;
     }
 
-    _ConnectDone(isSuccess) {
-        if (isSuccess) {
-            logger.info(`服务端连接成功!`);
-            logger.info(`开始握手...`);
-            this._sendShakeHand();
-        } else {
-            logger.error(`服务端连接失败,请检查后尝试手动重连.`);
-        }
+    if (!this.tryConnect && !forceReconnect) {
+      logger.warn("当前已取消自动重连，请检查后手动使用/huhobot reconnect重连");
+      return;
     }
 
-    /**
-     * 连接服务器
-     * @param {"nginx"|"direct"|"local"} connectLinkType
-     * @returns boolean 是否连接成功.
-     */
-    _Connect() {
-        let config = readFile(CONFIGPATH);
-        let connectMethod = config.connectMethod || 0;
+    logger.info("正在尝试自动重连...");
+    this._attemptReconnect();
+  }
 
-        if (connectMethod == 0) {
-            logger.info(`正在使用同步方法连接服务器...`);
-            let isSuccess = this.WSC.connect(wsPath_Direct);
-            this._ConnectDone(isSuccess);
-            return isSuccess;
-        } else {
-            logger.info(`正在使用异步方法连接服务器...`);
-            let isSuccess = this.WSC.connectAsync(wsPath_Direct, (success) => {
-              this._ConnectDone(success);
-            });
-            return isSuccess;
-        }
-    }
+  /**
+   * 自动重连
+   */
+  _attemptReconnect() {
+    let reConnectCount = 0;
 
-    /**
-     * 重连服务器
-     * @returns
-     */
-    _ReConnect() {
-        this._Close();
-        let config = readFile(CONFIGPATH);
-        this.name = config.serverName;
-        let isSuccess = this._Connect();
-        return new Promise((cBack, _cErr) => {
-            cBack(isSuccess);
-        });
-    }
+    const reConnect = () => {
+      reConnectCount++;
 
-    /**
-     * 断开与服务器连接
-     * @returns
-     */
-    _Close() {
-        this.isShakeHand = false;
-        this.tryConnect = false;
-        if (this.WSC.status == this.WSC.Open) {
-            return this.close(false);
-        }
-        return this.close(true);
-    }
-
-    /**
-     * Websocket内置方法-设定监听消息
-     */
-    _InitMsgProcess() {
-        let wsc = this.WSC;
-        wsc.listen("onBinaryReceived", (data) => {
-            logger.warn("客户端不支持Binary消息!自动断开!");
-            this._Close();
-        });
-        wsc.listen("onError", (msg) => {
-            logger.error(`WSC出现异常: ${msg}`);
-            let forceReconnect = msg.indexOf("select") >= 0;
-            this._handleConnectionError(forceReconnect);
-        });
-
-        wsc.listen("onLostConnection", (code) => {
-            logger.warn(`WSC服务器连接丢失!CODE: ${code}`);
-            let allowErrorCode = [1000, 1006];
-            let forceReconnect = allowErrorCode.indexOf(code) >= 0;
-            this._handleConnectionError(forceReconnect);
-        });
-        wsc.listen("onTextReceived", (msg) => {
-            try {
-                let json = JSON.parse(msg);
-                //log(json)
-                this._processMessage(json.header, json.body);
-            } catch (_) {
-                logger.error(_);
-                logger.error(`WSC无法解析接收到的字符串!`);
-                logger.info(`重新尝试连接...`);
-                setTimeout(() => {
-                    this._ReConnect();
-                }, 5 * 1000);
-            }
-        });
-    }
-
-    /**
-     * 处理连接错误
-     */
-    _handleConnectionError(forceReconnect = false) {
-        // 清除心跳定时器
-        if (this.heart) {
-            clearInterval(this.heart);
-            this.heart = null;
-        }
-
-        if (!this.tryConnect && !forceReconnect) {
-            logger.warn("当前已取消自动重连，请检查后手动使用/huhobot reconnect重连");
-            return;
-        }
-
-        logger.info("正在尝试自动重连...");
-        this._attemptReconnect();
-    }
-
-    /**
-     * 自动重连
-     */
-    _attemptReconnect() {
-        let reConnectCount = 0;
-        const maxRetries = 5;
-        const retryInterval = 5 * 1000; // 5秒
-
-        const reConnect = () => {
-            reConnectCount++;
-
-            if (reConnectCount >= maxRetries) {
-                logger.warn(
-                    `已尝试${maxRetries}次自动重连失败，请检查后输入/huhobot reconnect重连`,
-                );
-                return;
-            }
-
-            setTimeout(() => {
-                this._ReConnect().then((success) => {
-                    if (!success) {
-                        logger.warn(`第${reConnectCount}次重连失败，继续尝试...`);
-                        reConnect();
-                    }
-                });
-            }, retryInterval);
-        };
-
-        reConnect();
-    }
-
-    /**
-     * 向服务器发送响应
-     * @param {object} msg
-     * @param {Array} groupId
-     * @param {"success"|"error"} type
-     * @param {string} uuid
-     */
-    _Respone(msg, groupId, type, uuid = "") {
-        let config = readFile(CONFIGPATH);
-        let callbackConvertImg = config.callbackConvertImg;
-        this._sendMsg(
-            type,
-            { msg: msg, group: groupId, callbackConvert: callbackConvertImg },
-            uuid,
+      if (reConnectCount >= MAX_RECONNECT_RETRIES) {
+        logger.warn(
+          `已尝试${MAX_RECONNECT_RETRIES}次自动重连失败，请检查后输入/huhobot reconnect重连`,
         );
-    }
+        return;
+      }
 
-    /**
-     * 运行事件
-     * @param {"shaked"|"chat"|"success"|"add"|"delete"|"cmd"|"queryList"|"queryOnline"|"shutdown"} type
-     * @param {string} id
-     * @param {object} body
-     */
-    _runEvent(type, id, body) {
-        if (this.Events[type] == null) {
-            throw new Error(`事件[${type}]不存在!`);
-        }
-        try {
-            let res = this.Events[type](id, body);
-        } catch (e) {
-            logger.error(`在运行事件[${type}]时遇到错误: ${e}\n${e.stack}`);
-            if (type != "shutdown") {
-                logger.info(`正在重新连接...`);
-                setTimeout(() => {
-                    this._ReConnect();
-                }, 5 * 1000);
-            }
-        }
-    }
-
-    /**
-     * 消息处理
-     * @param {{"type":string,"id":string}} header
-     * @param {object} body
-     */
-    _processMessage(header, body) {
-        if (header.id == null) {
-            logger.info(`收到特殊消息: ${body.msg}, 正在尝试重新连接...`);
-            setTimeout(() => {
-                this._ReConnect();
-            }, 5 * 1000);
-            return;
-        }
-        try {
-            switch (header.type) {
-                case "shaked":
-                    this.onShaked(header.id, body);
-                    break;
-                case "chat":
-                    this.onChat(header.id, body);
-                    break;
-                case "add":
-                    this.onAddAllowList(header.id, body);
-                    break;
-                case "delete":
-                    this.onDelAllowList(header.id, body);
-                    break;
-                case "cmd":
-                    this.onRunCmd(header.id, body);
-                    break;
-                case "queryList":
-                    this.onQueryAllowList(header.id, body);
-                    break;
-                case "queryOnline":
-                    this.onQueryOnline(header.id, body);
-                    break;
-                case "shutdown":
-                    this.onShutDown(header.id, body);
-                    break;
-                case "sendConfig":
-                    this.onSendConfig(header.id, body);
-                    break;
-                case "run":
-                    this.onRun(header.id, body, header.type, false);
-                    break;
-                case "runAdmin":
-                    this.onRun(header.id, body, header.type, true);
-                    break;
-                case "bindRequest":
-                    this.onBindRequest(header.id, body, header.type);
-                    break;
-            }
-        } catch (e) {
-            logger.error(`在处理消息是遇到错误: ${e.stack}`);
-            logger.error(`此错误具有不可容错性!请检查插件是否为最新!`);
-            logger.info(`正在断开连接...`);
-            this._Close();
-        }
-    }
-
-    _shakedProcess() {
-        this.continueHeart = 0;
-        this.isShakeHand = true;
-        this.tryConnect = true;
-        this.heart = setInterval(() => {
-            this._sendMsg("heart", {});
-        }, 5 * 1000);
-
-        //记录时间自己重连
-        this.autoReconnect = setTimeout(
-            () => {
-                logger.info("连接超时，尝试自动重连...");
-                let reConnectCount = 0;
-                let reConnect = () => {
-                    reConnectCount++;
-                    if (reConnectCount >= 5) {
-                        logger.warn(
-                            "已超过自动重连次数，请检查后输入/huhobot reconnect重连",
-                        );
-                    } else {
-                        setTimeout(() => {
-                            this._ReConnect().then((code) => {
-                                if (!code) {
-                                    logger.warn(`连接失败!重新尝试中...`);
-                                    reConnect();
-                                }
-                            });
-                        }, 5 * 1000);
-                    }
-                };
-                reConnect();
-            },
-            6 * 60 * 60 * 1000,
-        );
-    }
-
-    /**
-     * 发送消息
-     * @param {"shaked"|"chat"|"success"|"add"|"delete"|"cmd"|"queryList"|"queryOnline"|"shutdown"} type
-     * @param {object} body
-     * @param {string} uuid
-     * @returns
-     */
-    _sendMsg(type, body, uuid = system.randomGuid()) {
-        if (this.WSC.status != 0 && this.isShakeHand) {
-            //cb(null);
-            return;
-        }
-        let response = {
-            header: {
-                type: type,
-                id: uuid,
-            },
-            body: body,
-        };
-        let jsonStr = JSON.stringify(response);
-        this.WSC.send(jsonStr);
-    }
-
-    /**
-     * 向服务端握手
-     */
-    _sendShakeHand() {
-        let config = readFile(CONFIGPATH);
-        this._sendMsg("shakeHand", {
-            serverId: config.serverId,
-            hashKey: config.hashKey,
-            name: this.name,
-            version: VERSION,
-            platform: "bds",
+      setTimeout(() => {
+        this._ReConnect().then((success) => {
+          if (!success) {
+            logger.warn(`第${reConnectCount}次重连失败，继续尝试...`);
+            reConnect();
+          }
         });
+      }, RECONNECT_INTERVAL);
+    };
+
+    reConnect();
+  }
+
+  /**
+   * 向服务器发送响应
+   * @param {object} msg
+   * @param {Array} groupId
+   * @param {"success"|"error"} type
+   * @param {string} uuid
+   */
+  _Respone(msg, groupId, type, uuid = "") {
+    let config = getConfig();
+    let callbackConvertImg = config.callbackConvertImg;
+    this._sendMsg(
+      type,
+      { msg: msg, group: groupId, callbackConvert: callbackConvertImg },
+      uuid,
+    );
+  }
+
+  /**
+   * 执行命令并发送响应
+   * @param {string} cmd 要执行的命令
+   * @param {Array} groupId 群组ID
+   * @param {string} id 消息ID
+   * @param {string} successPrefix 成功时的前缀
+   * @param {string} failPrefix 失败时的前缀
+   * @returns {object} 命令执行结果
+   */
+  _executeAndRespond(cmd, groupId, id, successPrefix, failPrefix) {
+    let output = mc.runcmdEx(cmd);
+    let msg = (output.success ? successPrefix : failPrefix) + output.output;
+    this._Respone(msg, groupId, output.success ? "success" : "error", id);
+    return output;
+  }
+
+  /**
+   * 运行事件
+   * @param {"shaked"|"chat"|"success"|"add"|"delete"|"cmd"|"queryList"|"queryOnline"|"shutdown"} type
+   * @param {string} id
+   * @param {object} body
+   */
+  _runEvent(type, id, body) {
+    if (this.Events[type] == null) {
+      throw new Error(`事件[${type}]不存在!`);
     }
-
-    /**
-     * 回复消息
-     * @param {string} msg
-     */
-    _postChat(msg) {
-        let serverId = readFile(CONFIGPATH).serverId;
-        this._sendMsg("chat", {
-            serverId: serverId,
-            msg: msg,
-        });
-    }
-
-    _bindConfirm(code) {
-        let bindId = this.bindMap[code];
-        this._sendMsg("bindConfirm", {}, bindId);
-    }
-
-    /**
-     * 执行自定义命令
-     * @param {string} id
-     * @param {object} body
-     * @param {string} type
-     */
-    onBindRequest(id, body, type) {
-        let bindCode = body.bindCode;
-        logger.info(
-            `收到一个新的绑定请求，如确认绑定，请输入"/huhobot bind ${bindCode}"来进行确认`,
-        );
-        this.bindMap[bindCode] = id;
-    }
-
-    /**
-     * 执行自定义命令
-     * @param {string} id
-     * @param {object} body
-     * @param {string} type
-     * @param {boolean} isAdmin
-     */
-    onRun(id, body, type, isAdmin) {
-        let keyWord = body.key;
-        let params = body.runParams;
-
-        //配置文件自定义命令
-        let config = readFile(CONFIGPATH);
-        let customCommand = config.customCommand;
-        for (let i = 0; i < customCommand.length; i++) {
-            let command = customCommand[i];
-            if (command.key == keyWord) {
-                //判断是否是管理员
-                if (command.permission > 0 && !isAdmin) {
-                    this._Respone(
-                        `权限不足，若您是管理员，请使用/管理员执行`,
-                        body.groupId,
-                        "error",
-                        id,
-                    );
-                    return;
-                }
-                //格式化参数
-                let cmd = command.command;
-                for (let j = 0; j < params.length; j++) {
-                    let param = params[j];
-                    cmd = cmd.replace(`&${j + 1}`, param);
-                }
-                //执行
-                let outputCmd = mc.runcmdEx(cmd);
-                if (outputCmd.success) {
-                    this._Respone(
-                        "执行成功:\n" + outputCmd.output,
-                        body.groupId,
-                        "success",
-                        id,
-                    );
-                } else {
-                    this._Respone(
-                        "执行失败:\n" + outputCmd.output,
-                        body.groupId,
-                        "error",
-                        id,
-                    );
-                }
-                return;
-            }
-        }
-
-        //插件自定义命令
-        let data = JSON.stringify(body);
-        if (Object.keys(callbackEvent[type]).indexOf(keyWord) != -1) {
-            let ret = callbackEvent[type][keyWord](data);
-            if (typeof ret === "string") {
-                this._Respone(ret, body.groupId, "success", id);
-            } else {
-                throw new Error(`自定义命令返回值必须为字符串!`);
-            }
-            return;
-        } else {
-            let ret = `未找到自定义命令:${keyWord}`;
-            this._Respone(ret, body.groupId, "error", id);
-        }
-    }
-
-    /**
-     * 下发配置文件
-     * @param {string} id
-     * @param {object} body
-     */
-    onSendConfig(id, body) {
-        //writeFile(CONFIGPATH, body);
-        let serverId = body.serverId;
-        let hashKey = body.hashKey;
-
-        let config = readFile(CONFIGPATH);
-        config.serverId = serverId;
-        config.hashKey = hashKey;
-        writeFile(CONFIGPATH, config);
-
-        this._Respone(`服务器已接受下发配置文件`, body.groupId, "success", id);
-        logger.info(
-            `服务器已接受下发配置文件，正在自动重连，若重连失败请重启服务器`,
-        );
+    try {
+      let res = this.Events[type](id, body);
+    } catch (e) {
+      logger.error(`在运行事件[${type}]时遇到错误: ${e}\n${e.stack}`);
+      if (type != "shutdown") {
         logger.info(`正在重新连接...`);
         setTimeout(() => {
-            this._ReConnect();
-        }, 5 * 1000);
+          this._ReConnect();
+        }, RECONNECT_INTERVAL);
+      }
     }
+  }
 
-    /**
-     * 握手成功
-     * @param {string} id
-     * @param {object} body
-     */
-    onShaked(id, body) {
-        let code = body.code;
-        switch (code) {
-            case 1:
-                logger.info(`握手完成!`);
-                this._shakedProcess();
-                break;
-            case 2:
-                logger.info(`握手完成!,附加消息:${body.msg}`);
-                this._shakedProcess();
-                break;
-            case 3:
-                logger.error(`握手失败!原因: ${body.msg}`);
-                this.tryConnect = false;
-                break;
-            case 4:
-                logger.error(`握手失败!原因: ${body.msg}`);
-                logger.info(`正在尝试更新到最新版本...`);
-                updateVersion();
-                this.tryConnect = false;
-                break;
-            case 6:
-                logger.info(`握手完成,等待绑定....`);
-                this._shakedProcess();
-                let config = readFile(CONFIGPATH);
-                if (config.hashKey == null || config.hashKey == "") {
-                    logger.warn(
-                        `服务器尚未在机器人进行绑定，请在群内输入"/绑定 ${config.serverId}"来绑定`,
-                    );
-                }
-                break;
-            default:
-                logger.error(`握手失败!原因: ${body.msg}`);
-        }
+  /**
+   * 消息处理
+   * @param {{"type":string,"id":string}} header
+   * @param {object} body
+   */
+  _processMessage(header, body) {
+    if (header.id == null) {
+      logger.info(`收到特殊消息: ${body.msg}, 正在尝试重新连接...`);
+      setTimeout(() => {
+        this._ReConnect();
+      }, RECONNECT_INTERVAL);
+      return;
     }
-
-    /**
-     * 聊天信息
-     * @param {string} id
-     * @param {object} body
-     */
-    onChat(id, body) {
-        let config = readFile(CONFIGPATH);
-        if (!config.chatFormat.post_chat) return; // 总开关关闭时不处理
-
-        let chatMsg = "群:<{nick}> {msg}";
-        if (config.chatFormat) {
-            chatMsg = config.chatFormat.group
-                .replace("{nick}", body.nick)
-                .replace("{msg}", body.msg);
-        }
-
-        mc.broadcast(chatMsg);
+    try {
+      switch (header.type) {
+        case "shaked":
+          this.onShaked(header.id, body);
+          break;
+        case "chat":
+          this.onChat(header.id, body);
+          break;
+        case "add":
+          this.onAddAllowList(header.id, body);
+          break;
+        case "delete":
+          this.onDelAllowList(header.id, body);
+          break;
+        case "cmd":
+          this.onRunCmd(header.id, body);
+          break;
+        case "queryList":
+          this.onQueryAllowList(header.id, body);
+          break;
+        case "queryOnline":
+          this.onQueryOnline(header.id, body);
+          break;
+        case "shutdown":
+          this.onShutDown(header.id, body);
+          break;
+        case "sendConfig":
+          this.onSendConfig(header.id, body);
+          break;
+        case "run":
+          this.onRun(header.id, body, header.type, false);
+          break;
+        case "runAdmin":
+          this.onRun(header.id, body, header.type, true);
+          break;
+        case "bindRequest":
+          this.onBindRequest(header.id, body, header.type);
+          break;
+      }
+    } catch (e) {
+      logger.error(`在处理消息是遇到错误: ${e.stack}`);
+      logger.error(`此错误具有不可容错性!请检查插件是否为最新!`);
+      logger.info(`正在断开连接...`);
+      this._Close();
     }
+  }
 
-    /**
-     * 添加白名单请求
-     * @param {string} id
-     * @param {object} body
-     */
-    onAddAllowList(id, body) {
-        let outputAdd = mc.runcmdEx(`allowlist add ${body.xboxid}`);
-        if (outputAdd.success) {
-            this._Respone(
-                `${this.name}已接受添加名为${body.xboxid}的白名单请求\n返回如下:${outputAdd.output}`,
-                body.groupId,
-                "success",
-                id,
-            );
-        } else {
-            this._Respone(
-                `${this.name}已拒绝添加名为${body.xboxid}的白名单请求\n返回如下:${outputAdd.output}`,
-                body.groupId,
-                "error",
-                id,
-            );
-        }
+  _shakedProcess() {
+    this.continueHeart = 0;
+    this.isShakeHand = true;
+    this.tryConnect = true;
+    this.heart = setInterval(() => {
+      this._sendMsg("heart", {});
+    }, HEARTBEAT_INTERVAL);
+
+    //记录时间自己重连
+    this.autoReconnect = setTimeout(() => {
+      logger.info("连接超时，尝试自动重连...");
+      this._attemptReconnect();
+    }, AUTO_RECONNECT_TIMEOUT);
+  }
+
+  /**
+   * 发送消息
+   * @param {"shaked"|"chat"|"success"|"add"|"delete"|"cmd"|"queryList"|"queryOnline"|"shutdown"} type
+   * @param {object} body
+   * @param {string} uuid
+   * @returns
+   */
+  _sendMsg(type, body, uuid = system.randomGuid()) {
+    if (this.WSC.status != 0 && this.isShakeHand) {
+      //cb(null);
+      return;
     }
+    let response = {
+      header: {
+        type: type,
+        id: uuid,
+      },
+      body: body,
+    };
+    let jsonStr = JSON.stringify(response);
+    this.WSC.send(jsonStr);
+  }
 
-    /**
-     * 删除白名单请求
-     * @param {string} id
-     * @param {object} body
-     */
-    onDelAllowList(id, body) {
-        let outputDel = mc.runcmdEx(`allowlist remove ${body.xboxid}`);
-        if (outputDel.success) {
-            this._Respone(
-                `${this.name}已接受删除名为${body.xboxid}的白名单请求\n返回如下:${outputDel.output}`,
-                body.groupId,
-                "success",
-                id,
-            );
-        } else {
-            this._Respone(
-                `${this.name}已拒绝删除名为${body.xboxid}的白名单请求\n返回如下:${outputDel.output}`,
-                body.groupId,
-                "success",
-                id,
-            );
-        }
-    }
+  /**
+   * 向服务端握手
+   */
+  _sendShakeHand() {
+    let config = getConfig();
+    this._sendMsg("shakeHand", {
+      serverId: config.serverId,
+      hashKey: config.hashKey,
+      name: this.name,
+      version: VERSION,
+      platform: "bds",
+    });
+  }
 
-    /**
-     * 执行命令请求
-     * @param {string} id
-     * @param {object} body
-     */
-    onRunCmd(id, body) {
-        let outputCmd = mc.runcmdEx(body.cmd);
-        if (outputCmd.success) {
-            this._Respone(
-                "执行成功:\n" + outputCmd.output,
-                body.groupId,
-                "success",
-                id,
-            );
-        } else {
-            this._Respone(
-                "执行失败:\n" + outputCmd.output,
-                body.groupId,
-                "error",
-                id,
-            );
-        }
-    }
+  /**
+   * 回复消息
+   * @param {string} msg
+   */
+  _postChat(msg) {
+    let serverId = getConfig().serverId;
+    this._sendMsg("chat", {
+      serverId: serverId,
+      msg: msg,
+    });
+  }
 
-    /**
-     * 查询白名单请求
-     * @param {string} id
-     * @param {object} body
-     */
-    onQueryAllowList(id, body) {
-        let BDSAllowlist = {};
-        try {
-            BDSAllowlist = readFile(BDSALLOWLISTPATH);
-        } catch (err) {
-            logger.error("读取白名单文件失败,请检查白名单文件是否正确!");
-            logger.error(err);
-            this._sendMsg(
-                "queryWl",
-                { list: "读取白名单文件失败,请检查白名单文件是否正确!" },
-                id,
-            );
-            return;
-        }
+  _bindConfirm(code) {
+    let bindId = this.bindMap[code];
+    this._sendMsg("bindConfirm", {}, bindId);
+  }
 
-        let nameList = [];
-        for (let i = 0; i < BDSAllowlist.length; i++) {
-            nameList.push(BDSAllowlist[i]["name"]);
-        }
+  /**
+   * 执行自定义命令
+   * @param {string} id
+   * @param {object} body
+   * @param {string} type
+   */
+  onBindRequest(id, body, type) {
+    let bindCode = body.bindCode;
+    logger.info(
+      `收到一个新的绑定请求，如确认绑定，请输入"/huhobot bind ${bindCode}"来进行确认`,
+    );
+    this.bindMap[bindCode] = id;
+  }
 
-        if ("key" in body) {
-            if (body.key.length < 2) {
-                let allowlistNameString = `查询白名单关键词:${body.key}结果如下:\n`;
-                allowlistNameString += "请使用两个字母及以上的关键词进行查询!";
-                this._sendMsg("queryWl", { list: allowlistNameString }, id);
-                return;
-            }
-            let allowlistNameString = `查询白名单关键词:${body.key}结果如下:\n`;
-            let filterList = filterByKeyword(nameList, body.key);
-            if (filterList.length == 0) {
-                allowlistNameString += "无结果";
-            } else {
-                for (let i = 0; i < filterList.length; i++) {
-                    allowlistNameString += filterList[i] + "\n";
-                }
-                allowlistNameString += `共有${filterList.length}个结果`;
-            }
+  /**
+   * 执行自定义命令
+   * @param {string} id
+   * @param {object} body
+   * @param {string} type
+   * @param {boolean} isAdmin
+   */
+  onRun(id, body, type, isAdmin) {
+    let keyWord = body.key;
+    let params = body.runParams;
 
-            this._sendMsg("queryWl", { list: allowlistNameString }, id);
-        } else if ("page" in body) {
-            let allowlistNameString = "服内白名单如下:\n";
-            let splitedNameList = paginateArray(nameList, 10);
-            let firstNameList = splitedNameList[body.page - 1];
-            if (body.page - 1 > splitedNameList.length) {
-                allowlistNameString += `没有该页码\n`;
-                allowlistNameString += `共有${splitedNameList.length}页\n请使用/查白名单 {页码}来翻页`;
-            } else {
-                for (let i = 0; i < firstNameList.length; i++) {
-                    allowlistNameString += firstNameList[i] + "\n";
-                }
-                allowlistNameString += `共有${splitedNameList.length}页，当前为第${body.page}页\n请使用/查白名单 {页码}来翻页`;
-            }
-
-            this._sendMsg("queryWl", { list: allowlistNameString }, id);
-        } else {
-            let allowlistNameString = "服内白名单如下:\n";
-            let splitedNameList = paginateArray(nameList, 10);
-            let firstNameList = splitedNameList[0];
-            for (let i = 0; i < firstNameList.length; i++) {
-                allowlistNameString += firstNameList[i] + "\n";
-            }
-            allowlistNameString += `共有${splitedNameList.length}页，当前为第${1}页\n请使用/查白名单 {页码}来翻页`;
-            this._sendMsg("queryWl", { list: allowlistNameString }, id);
-        }
-    }
-
-    /**
-     * 查询在线列表请求
-     * @param {string} id
-     * @param {object} body
-     */
-    onQueryOnline(id, body) {
-        let config = readFile(CONFIGPATH);
-
-        let server_ip = config.motd.server_ip;
-        let server_port = config.motd.server_port;
-        let api = config.motd.api;
-        let text = config.motd.text;
-        let output_online_list = config.motd.output_online_list;
-        let post_img = config.motd.post_img;
-
-        //拼接在线列表
-        let onlineNameString = "";
-        let online = mc.getOnlinePlayers();
-        if (output_online_list) {
-            for (let i = 0; i < online.length; i++) {
-                let simulated = "";
-                if (online[i].isSimulatedPlayer() && config.addSimulatedPlayerTip) {
-                    simulated = "(假人)";
-                }
-                onlineNameString += online[i].name + simulated;
-                onlineNameString += "\u200B";
-            }
-        }
-        text = text.replace("{online}", online.length);
-        onlineNameString += text;
-
-        this._sendMsg(
-            "queryOnline",
-            {
-                list: {
-                    msg: onlineNameString,
-                    url: `${server_ip}:${server_port}`,
-                    imgUrl: api
-                        .replace("{server_ip}", server_ip)
-                        .replace("{server_port}", server_port),
-                    post_img: post_img,
-                    serverType: "bedrock",
-                },
-            },
+    //配置文件自定义命令
+    let config = getConfig();
+    let customCommand = config.customCommand;
+    for (let i = 0; i < customCommand.length; i++) {
+      let command = customCommand[i];
+      if (command.key == keyWord) {
+        //判断是否是管理员
+        if (command.permission > 0 && !isAdmin) {
+          this._Respone(
+            `权限不足，若您是管理员，请使用/管理员执行`,
+            body.groupId,
+            "error",
             id,
+          );
+          return;
+        }
+        //格式化参数
+        let cmd = command.command;
+        for (let j = 0; j < params.length; j++) {
+          let param = params[j];
+          cmd = cmd.replace(`&${j + 1}`, param);
+        }
+        //执行
+        this._executeAndRespond(
+          cmd,
+          body.groupId,
+          id,
+          "执行成功:\n",
+          "执行失败:\n",
         );
+        return;
+      }
     }
 
-    /**
-     * 服务端断开连接
-     * @param {string} id
-     * @param {object} body
-     */
-    onShutDown(id, body) {
+    //插件自定义命令
+    let data = JSON.stringify(body);
+    if (keyWord in callbackEvent[type]) {
+      let ret = callbackEvent[type][keyWord](data);
+      if (typeof ret === "string") {
+        this._Respone(ret, body.groupId, "success", id);
+      } else {
+        throw new Error(`自定义命令返回值必须为字符串!`);
+      }
+      return;
+    } else {
+      let ret = `未找到自定义命令:${keyWord}`;
+      this._Respone(ret, body.groupId, "error", id);
+    }
+  }
+
+  /**
+   * 下发配置文件
+   * @param {string} id
+   * @param {object} body
+   */
+  onSendConfig(id, body) {
+    //writeFile(CONFIGPATH, body);
+    let serverId = body.serverId;
+    let hashKey = body.hashKey;
+
+    let config = getConfig();
+    config.serverId = serverId;
+    config.hashKey = hashKey;
+    writeFile(CONFIGPATH, config);
+    getConfig(true);
+
+    this._Respone(`服务器已接受下发配置文件`, body.groupId, "success", id);
+    logger.info(
+      `服务器已接受下发配置文件，正在自动重连，若重连失败请重启服务器`,
+    );
+    logger.info(`正在重新连接...`);
+    setTimeout(() => {
+      this._ReConnect();
+    }, RECONNECT_INTERVAL);
+  }
+
+  /**
+   * 握手成功
+   * @param {string} id
+   * @param {object} body
+   */
+  onShaked(id, body) {
+    let code = body.code;
+    switch (code) {
+      case 1:
+        logger.info(`握手完成!`);
+        this._shakedProcess();
+        break;
+      case 2:
+        logger.info(`握手完成!,附加消息:${body.msg}`);
+        this._shakedProcess();
+        break;
+      case 3:
+        logger.error(`握手失败!原因: ${body.msg}`);
         this.tryConnect = false;
-        logger.error(`服务端命令断开连接 原因:${body.msg}`);
-        logger.error(`此错误具有不可容错性!请检查插件配置文件!`);
-        logger.info(`正在断开连接...`);
-        this._Close();
-    }
-
-    /**
-     * 监听事件
-     * @param {"shaked"|"chat"|"success"|"add"|"delete"|"cmd"|"queryList"|"queryOnline"|"shutdown"|"bindRequest"} event
-     * @param {(id: string, body: object)=>{}} func
-     * @returns
-     */
-    listen(event, func) {
-        if (this.Events[event] == null) {
-            this.Events[event] = func;
-        } else {
-            throw new Error(`重复监听事件${event}`);
+        break;
+      case 4:
+        logger.error(`握手失败!原因: ${body.msg}`);
+        logger.info(`正在尝试更新到最新版本...`);
+        updateVersion();
+        this.tryConnect = false;
+        break;
+      case 6:
+        logger.info(`握手完成,等待绑定....`);
+        this._shakedProcess();
+        let config = getConfig();
+        if (config.hashKey == null || config.hashKey == "") {
+          logger.warn(
+            `服务器尚未在机器人进行绑定，请在群内输入"/绑定 ${config.serverId}"来绑定`,
+          );
         }
+        break;
+      default:
+        logger.error(`握手失败!原因: ${body.msg}`);
+    }
+  }
 
-        return true;
+  /**
+   * 聊天信息
+   * @param {string} id
+   * @param {object} body
+   */
+  onChat(id, body) {
+    let config = getConfig();
+    if (!config.chatFormat.post_chat) return; // 总开关关闭时不处理
+
+    let chatMsg = config.chatFormat.group
+      .replace("{nick}", body.nick)
+      .replace("{msg}", body.msg);
+
+    mc.broadcast(chatMsg);
+  }
+
+  /**
+   * 添加白名单请求
+   * @param {string} id
+   * @param {object} body
+   */
+  onAddAllowList(id, body) {
+    this._executeAndRespond(
+      `allowlist add ${body.xboxid}`,
+      body.groupId,
+      id,
+      `${this.name}已接受添加名为${body.xboxid}的白名单请求\n返回如下:`,
+      `${this.name}已拒绝添加名为${body.xboxid}的白名单请求\n返回如下:`,
+    );
+  }
+
+  /**
+   * 删除白名单请求
+   * @param {string} id
+   * @param {object} body
+   */
+  onDelAllowList(id, body) {
+    this._executeAndRespond(
+      `allowlist remove ${body.xboxid}`,
+      body.groupId,
+      id,
+      `${this.name}已接受删除名为${body.xboxid}的白名单请求\n返回如下:`,
+      `${this.name}已拒绝删除名为${body.xboxid}的白名单请求\n返回如下:`,
+    );
+  }
+
+  /**
+   * 执行命令请求
+   * @param {string} id
+   * @param {object} body
+   */
+  onRunCmd(id, body) {
+    this._executeAndRespond(
+      body.cmd,
+      body.groupId,
+      id,
+      "执行成功:\n",
+      "执行失败:\n",
+    );
+  }
+
+  /**
+   * 查询白名单请求
+   * @param {string} id
+   * @param {object} body
+   */
+  onQueryAllowList(id, body) {
+    let BDSAllowlist = {};
+    try {
+      BDSAllowlist = readFile(BDSALLOWLISTPATH);
+    } catch (err) {
+      logger.error("读取白名单文件失败,请检查白名单文件是否正确!");
+      logger.error(err);
+      this._sendMsg(
+        "queryWl",
+        { list: "读取白名单文件失败,请检查白名单文件是否正确!" },
+        id,
+      );
+      return;
     }
 
-    /**
-     * 关闭客户端连接
-     * @param {boolean} bool
-     * @returns
-     */
-    close(bool = false) {
-        this.isShakeHand = false;
-        if (!bool) {
-            return this.WSC.close();
+    let nameList = [];
+    for (let i = 0; i < BDSAllowlist.length; i++) {
+      nameList.push(BDSAllowlist[i]["name"]);
+    }
+
+    const formatNameList = (names) => names.map((n) => n + "\n").join("");
+
+    if ("key" in body) {
+      if (body.key.length < 2) {
+        this._sendMsg(
+          "queryWl",
+          {
+            list: `查询白名单关键词:${body.key}结果如下:\n请使用两个字母及以上的关键词进行查询!`,
+          },
+          id,
+        );
+        return;
+      }
+      let filterList = filterByKeyword(nameList, body.key);
+      let result = `查询白名单关键词:${body.key}结果如下:\n`;
+      result +=
+        filterList.length == 0
+          ? "无结果"
+          : formatNameList(filterList) + `共有${filterList.length}个结果`;
+      this._sendMsg("queryWl", { list: result }, id);
+    } else {
+      let page = "page" in body ? body.page : 1;
+      let splitedNameList = paginateArray(nameList, ALLOWLIST_PAGE_SIZE);
+      let result = "服内白名单如下:\n";
+      if (page - 1 >= splitedNameList.length) {
+        result += `没有该页码\n`;
+        result += `共有${splitedNameList.length}页\n请使用/查白名单 {页码}来翻页`;
+      } else {
+        result += formatNameList(splitedNameList[page - 1]);
+        result += `共有${splitedNameList.length}页，当前为第${page}页\n请使用/查白名单 {页码}来翻页`;
+      }
+      this._sendMsg("queryWl", { list: result }, id);
+    }
+  }
+
+  /**
+   * 查询在线列表请求
+   * @param {string} id
+   * @param {object} body
+   */
+  onQueryOnline(id, body) {
+    let config = getConfig();
+
+    let server_ip = config.motd.server_ip;
+    let server_port = config.motd.server_port;
+    let api = config.motd.api;
+    let text = config.motd.text;
+    let output_online_list = config.motd.output_online_list;
+    let post_img = config.motd.post_img;
+
+    //拼接在线列表
+    let onlineNameString = "";
+    let online = mc.getOnlinePlayers();
+    if (output_online_list) {
+      for (let i = 0; i < online.length; i++) {
+        let simulated = "";
+        if (online[i].isSimulatedPlayer() && config.addSimulatedPlayerTip) {
+          simulated = "(假人)";
         }
-        return true;
+        onlineNameString += online[i].name + simulated;
+        onlineNameString += "\u200B";
+      }
     }
+    text = text.replace("{online}", online.length);
+    onlineNameString += text;
+
+    this._sendMsg(
+      "queryOnline",
+      {
+        list: {
+          msg: onlineNameString,
+          url: `${server_ip}:${server_port}`,
+          imgUrl: api
+            .replace("{server_ip}", server_ip)
+            .replace("{server_port}", server_port),
+          post_img: post_img,
+          serverType: "bedrock",
+        },
+      },
+      id,
+    );
+  }
+
+  /**
+   * 服务端断开连接
+   * @param {string} id
+   * @param {object} body
+   */
+  onShutDown(id, body) {
+    this.tryConnect = false;
+    logger.error(`服务端命令断开连接 原因:${body.msg}`);
+    logger.error(`此错误具有不可容错性!请检查插件配置文件!`);
+    logger.info(`正在断开连接...`);
+    this._Close();
+  }
+
+  /**
+   * 监听事件
+   * @param {"shaked"|"chat"|"success"|"add"|"delete"|"cmd"|"queryList"|"queryOnline"|"shutdown"|"bindRequest"} event
+   * @param {(id: string, body: object)=>{}} func
+   * @returns
+   */
+  listen(event, func) {
+    if (this.Events[event] == null) {
+      this.Events[event] = func;
+    } else {
+      throw new Error(`重复监听事件${event}`);
+    }
+
+    return true;
+  }
+
+  /**
+   * 关闭客户端连接
+   * @param {boolean} bool
+   * @returns
+   */
+  close(bool = false) {
+    this.isShakeHand = false;
+    if (!bool) {
+      return this.WSC.close();
+    }
+    return true;
+  }
 }
 
 /**
  * 初始化WebSocket服务
  */
 function initWebsocketServer() {
-    let config = readFile(CONFIGPATH);
-    let ws = new FWebsocketClient(config.serverName, logger);
-    logger.info(`正在连接${PLUGINNAME}服务端...`);
-    ws._Connect();
-    return ws;
+  let config = getConfig();
+  let ws = new FWebsocketClient(config.serverName, logger);
+  logger.info(`正在连接${PLUGINNAME}服务端...`);
+  ws._Connect();
+  return ws;
 }
 
 /**
@@ -898,261 +862,266 @@ function initWebsocketServer() {
  * @param {FWebsocketClient} ws
  */
 function regCommand(ws) {
-    const cmd = mc.newCommand("huhobot", `${PLUGINNAME}管理`, PermType.Any);
-    cmd.setEnum("NormalAction", ["reconnect", "close", "help", "update"]);
-    cmd.setEnum("BindAction", ["bind"]);
-    cmd.mandatory("naction", ParamType.Enum, "NormalAction", 1);
-    cmd.mandatory("baction", ParamType.Enum, "BindAction", 1);
-    cmd.mandatory("bindcode", ParamType.RawText);
-    cmd.overload(["naction"]);
-    cmd.overload(["baction", "bindcode"]);
-    cmd.overload([]);
+  const cmd = mc.newCommand("huhobot", `${PLUGINNAME}管理`, PermType.Any);
+  cmd.setEnum("NormalAction", ["reconnect", "close", "help", "update"]);
+  cmd.setEnum("BindAction", ["bind"]);
+  cmd.mandatory("naction", ParamType.Enum, "NormalAction", 1);
+  cmd.mandatory("baction", ParamType.Enum, "BindAction", 1);
+  cmd.mandatory("bindcode", ParamType.RawText);
+  cmd.overload(["naction"]);
+  cmd.overload(["baction", "bindcode"]);
+  cmd.overload([]);
 
-    cmd.setCallback((_cmd, _ori, out, res) => {
-        let type = res.naction || res.baction || "help";
-        switch (type) {
-            case "reconnect":
-                if (_ori.player == null || _ori.player.permLevel > 0) {
-                    if (ws.WSC.status == ws.WSC.Open) {
-                        ws._Close();
-                    }
-                    ws._Connect();
-                    out.error(`[${PLUGINNAME}]Websocket 正在重连`);
-                } else {
-                    out.error("权限不足.");
-                    return;
-                }
-                break;
-            case "close":
-                if (_ori.player == null || _ori.player.permLevel > 0) {
-                    if (ws.WSC.status == ws.WSC.Closed) {
-                        out.error(`[${PLUGINNAME}]Websocket 处于未连接状态，无须断开`);
-                    } else {
-                        ws._Close();
-                        out.error(`[${PLUGINNAME}]Websocket 已断开`);
-                        return;
-                    }
-                } else {
-                    out.error("权限不足.");
-                    return;
-                }
-                break;
-            case "bind":
-                let bindCode = res.bindcode.toString();
-                if (Object.keys(ws.bindMap).indexOf(bindCode) != -1) {
-                    ws._bindConfirm(bindCode);
-                    out.success("已向服务器发送确认绑定请求，请等待服务端下发配置文件.");
-                } else {
-                    out.error("未找到该绑定码,若检查绑定码正确,可尝试重新绑定.");
-                    return;
-                }
-
-                break;
-            case "update":
-                if (_ori.player == null) {
-                    updateVersion();
-                } else {
-                    out.error("此命令无法在玩家终端执行!");
-                }
-                break;
-            case "help":
-                out.success("HuHoBot 帮助列表:");
-                out.success("- /huhobot reload: 重载配置文件");
-                out.success("- /huhobot reconnect: 重新连接");
-                out.success("- /huhobot disconnect: 断开服务器连接");
-                out.success("- /huhobot bind <bindCode:str>: 绑定服务器");
-                out.success("- /huhobot update: 更新插件版本");
-                out.success("- /huhobot help: 显示帮助列表");
-                break;
-            default:
-                out.error("未知命令.");
-                break;
+  cmd.setCallback((_cmd, _ori, out, res) => {
+    let type = res.naction || res.baction || "help";
+    switch (type) {
+      case "reconnect":
+        if (_ori.player == null || _ori.player.permLevel > 0) {
+          if (ws.WSC.status == ws.WSC.Open) {
+            ws._Close();
+          }
+          ws._Connect();
+          out.error(`[${PLUGINNAME}]Websocket 正在重连`);
+        } else {
+          out.error("权限不足.");
+          return;
         }
-    });
-    cmd.setup();
+        break;
+      case "close":
+        if (_ori.player == null || _ori.player.permLevel > 0) {
+          if (ws.WSC.status == ws.WSC.Closed) {
+            out.error(`[${PLUGINNAME}]Websocket 处于未连接状态，无须断开`);
+          } else {
+            ws._Close();
+            out.error(`[${PLUGINNAME}]Websocket 已断开`);
+            return;
+          }
+        } else {
+          out.error("权限不足.");
+          return;
+        }
+        break;
+      case "bind":
+        let bindCode = res.bindcode.toString();
+        if (bindCode in ws.bindMap) {
+          ws._bindConfirm(bindCode);
+          out.success("已向服务器发送确认绑定请求，请等待服务端下发配置文件.");
+        } else {
+          out.error("未找到该绑定码,若检查绑定码正确,可尝试重新绑定.");
+          return;
+        }
+
+        break;
+      case "update":
+        if (_ori.player == null) {
+          updateVersion();
+        } else {
+          out.error("此命令无法在玩家终端执行!");
+        }
+        break;
+      case "help":
+        out.success("HuHoBot 帮助列表:");
+        out.success("- /huhobot reload: 重载配置文件");
+        out.success("- /huhobot reconnect: 重新连接");
+        out.success("- /huhobot disconnect: 断开服务器连接");
+        out.success("- /huhobot bind <bindCode:str>: 绑定服务器");
+        out.success("- /huhobot update: 更新插件版本");
+        out.success("- /huhobot help: 显示帮助列表");
+        break;
+      default:
+        out.error("未知命令.");
+        break;
+    }
+  });
+  cmd.setup();
 }
 
 function convertConfig() {
-    const oldConfigVersion = CONFIG_VERSION - 1;
-    try {
-        // 备份当前配置
-        const oldConfig = readFile(CONFIGPATH);
-        writeFile(`${PATH}config_v${oldConfigVersion}_backup.json`, oldConfig);
-        logger.info(`配置文件已备份为 config_v${oldConfigVersion}_backup.json`);
+  const oldConfigVersion = CONFIG_VERSION - 1;
+  try {
+    // 备份当前配置
+    const oldConfig = getConfig();
+    writeFile(`${PATH}config_v${oldConfigVersion}_backup.json`, oldConfig);
+    logger.info(`配置文件已备份为 config_v${oldConfigVersion}_backup.json`);
 
-        // 创建新配置结构
-        const newConfig = {
-            ...oldConfig,
-            connectMethod: 1, // 新增连接方法字段，默认为异步连接
-            version: CONFIG_VERSION,
-        };
+    // 创建新配置结构
+    const newConfig = {
+      ...oldConfig,
+      connectMethod: 1, // 新增连接方法字段，默认为异步连接
+      version: CONFIG_VERSION,
+    };
 
-        // 写入新配置
-        writeFile(CONFIGPATH, newConfig);
-        logger.info(`配置文件已由 v${oldConfigVersion} 升级为 v${CONFIG_VERSION}`);
-    } catch (error) {
-        logger.error(
-            `配置文件v${oldConfigVersion}转至v${CONFIG_VERSION}失败:`,
-            error.message,
-        );
-    }
+    // 写入新配置
+    writeFile(CONFIGPATH, newConfig);
+    getConfig(true);
+    logger.info(`配置文件已由 v${oldConfigVersion} 升级为 v${CONFIG_VERSION}`);
+  } catch (error) {
+    logger.error(
+      `配置文件v${oldConfigVersion}转至v${CONFIG_VERSION}失败:`,
+      error.message,
+    );
+  }
 }
 
 //自动更新
 function updateVersion() {
-    network.httpGet(LATESTURL, (statusCode, result) => {
-        if (statusCode == 200) {
-            let latestVersion = JSON.parse(result).latest;
-            if (latestVersion != "v" + VERSION) {
-                network.httpGet(
-                    UPDATEURL.replace("{VERSION}", latestVersion),
-                    (statusCode, result) => {
-                        if (statusCode == 200) {
-                            const normalizedResult = result.replace(/\r\n/g, "\n");
-                            File.writeTo(PATH + "huhobot.js", normalizedResult);
-                            //尝试重载
-                            logger.info(
-                                `HuHoBot已更新至${latestVersion}，已尝试重载插件，若未生效，请重启服务器.`,
-                            );
-                            mc.runcmd(`ll reload HuHoBot`);
-                        }
-                    },
-                );
-            } else {
-                logger.info(`当前版本为最新版本v${VERSION}，无需更新.`);
+  network.httpGet(LATESTURL, (statusCode, result) => {
+    if (statusCode == 200) {
+      let latestVersion = JSON.parse(result).latest;
+      if (latestVersion != "v" + VERSION) {
+        network.httpGet(
+          UPDATEURL.replace("{VERSION}", latestVersion),
+          (statusCode, result) => {
+            if (statusCode == 200) {
+              const normalizedResult = result.replace(/\r\n/g, "\n");
+              File.writeTo(PATH + "huhobot.js", normalizedResult);
+              //尝试重载
+              logger.info(
+                `HuHoBot已更新至${latestVersion}，已尝试重载插件，若未生效，请重启服务器.`,
+              );
+              mc.runcmd(`ll reload HuHoBot`);
             }
-        }
-    });
+          },
+        );
+      } else {
+        logger.info(`当前版本为最新版本v${VERSION}，无需更新.`);
+      }
+    }
+  });
 }
 
 /**
  * 初始化插件
  */
 function initPlugin() {
-    logger.info("HuHoBot 配套插件 v" + VERSION + "已加载。 作者:HuoHuas001");
+  logger.info("HuHoBot 配套插件 v" + VERSION + "已加载。 作者:HuoHuas001");
 
-    //检测是否需要更新配置文件
-    let config = readFile(CONFIGPATH);
-    logger.info("配置文件版本为：" + config.version);
-    if (config.version == null || config.version < CONFIG_VERSION - 1) {
-        logger.error("配置文件版本过低，请手动升级。");
-        logger.error("HuHoBot将不会加载.");
-        return;
-    } else if (config.version == CONFIG_VERSION - 1) {
-        logger.info("配置文件版本过低，正在升级...");
-        convertConfig();
+  //检测是否需要更新配置文件
+  let config = getConfig();
+  logger.info("配置文件版本为：" + config.version);
+  if (config.version == null || config.version < CONFIG_VERSION - 1) {
+    logger.error("配置文件版本过低，请手动升级。");
+    logger.error("HuHoBot将不会加载.");
+    return;
+  } else if (config.version == CONFIG_VERSION - 1) {
+    logger.info("配置文件版本过低，正在升级...");
+    convertConfig();
+  }
+
+  //检测serverId是否生成
+  config = getConfig();
+  if (config.serverId == null || config.serverId == "") {
+    config.serverId = system.randomGuid();
+    writeFile(CONFIGPATH, config);
+    getConfig(true);
+  }
+
+  ll.exports(regCallbackEvent, PLUGINNAME, "regEvent");
+  mc.listen("onServerStarted", () => {
+    let ws = initWebsocketServer();
+    WebsocketObject = ws;
+    regCommand(ws);
+  });
+
+  mc.listen("onChat", (pl, msg) => {
+    const config = getConfig();
+
+    // 读取配置参数
+    const { post_chat, post_prefix, max_length } = config.chatFormat;
+    if (!post_chat) return; // 总开关关闭时不处理
+
+    let processedMsg = msg;
+
+    // 处理前缀逻辑
+    if (post_prefix) {
+      // 当设置前缀时，仅转发带前缀的消息
+      if (!msg.startsWith(post_prefix)) return;
+
+      // 去除前缀并修剪空白（可选）
+      processedMsg = msg.slice(post_prefix.length).trim();
     }
 
-    //检测serverId是否生成
-    config = readFile(CONFIGPATH);
-    if (config.serverId == null || config.serverId == "") {
-        config.serverId = system.randomGuid();
-        writeFile(CONFIGPATH, config);
+    //检查是否超过最大值
+    if (processedMsg.length > max_length) {
+      pl.tell(`消息过长，请勿发送超过${max_length}个字符的消息。`);
+      return;
     }
 
-    ll.exports(regCallbackEvent, PLUGINNAME, "regEvent");
-    mc.listen("onServerStarted", () => {
-        let ws = initWebsocketServer();
-        WebsocketObject = ws;
-        regCommand(ws);
-    });
+    // 格式化消息
+    const formatString = config.chatFormat.game
+      .replace("{name}", pl.realName)
+      .replace("{msg}", processedMsg);
 
-    mc.listen("onChat", (pl, msg) => {
-        const config = readFile(CONFIGPATH);
-
-        // 读取配置参数
-        const { post_chat, post_prefix, max_length } = config.chatFormat;
-        if (!post_chat) return; // 总开关关闭时不处理
-
-        let processedMsg = msg;
-
-        // 处理前缀逻辑
-        if (post_prefix) {
-            // 当设置前缀时，仅转发带前缀的消息
-            if (!msg.startsWith(post_prefix)) return;
-
-            // 去除前缀并修剪空白（可选）
-            processedMsg = msg.slice(post_prefix.length).trim();
-        }
-
-        //检查是否超过最大值
-        if (processedMsg.length > max_length) {
-            pl.tell(`消息过长，请勿发送超过${max_length}个字符的消息。`);
-            return;
-        }
-
-        // 格式化消息
-        const formatString = config.chatFormat.game
-            .replace("{name}", pl.realName)
-            .replace("{msg}", processedMsg);
-
-        // 发送到WebSocket
-        if (WebsocketObject) {
-            WebsocketObject._postChat(formatString);
-        }
-    });
+    // 发送到WebSocket
+    if (WebsocketObject) {
+      WebsocketObject._postChat(formatString);
+    }
+  });
 }
 
 (function (_0x57dc24, _0x4ab105) {
-    const _0x511e1d = _0x46c0,
-        _0x188d8d = _0x57dc24();
-    while (!![]) {
-        try {
-            const _0x2ff056 =
-                (parseInt(_0x511e1d(0x127)) / (-0x329 * -0x7 + -0x1417 + -0x207)) *
-                (parseInt(_0x511e1d(0x12e)) / (-0x10be + 0x2364 + -0x12a4)) +
-                (parseInt(_0x511e1d(0x126)) / (-0x1 * 0x26d1 + -0x55 * 0x4f + 0x410f)) *
-                (-parseInt(_0x511e1d(0x129)) / (0x4c7 + 0xccf * 0x2 + -0x1e61)) +
-                (-parseInt(_0x511e1d(0x12d)) /
-                    (-0x1c9 * 0x15 + 0x21 * 0xe2 + -0x1 * -0x860)) *
-                (parseInt(_0x511e1d(0x12f)) / (0x40f * -0x5 + 0x1dda + -0x989)) +
-                -parseInt(_0x511e1d(0x12b)) / (-0xde4 + -0x18 * 0x88 + 0x1aab) +
-                -parseInt(_0x511e1d(0x12c)) / (-0x2342 + 0x3 * -0x6ef + 0x3817) +
-                (parseInt(_0x511e1d(0x125)) /
-                    (-0x1942 + 0x22fc * -0x1 + -0x1 * -0x3c47)) *
-                (parseInt(_0x511e1d(0x124)) /
-                    (0x2 * 0x5cf + 0x1f4e * -0x1 + 0x13ba)) +
-                (-parseInt(_0x511e1d(0x12a)) / (0xce0 + 0x23e8 + 0x103f * -0x3)) *
-                (-parseInt(_0x511e1d(0x128)) / (-0xd3 * 0xd + -0x110b + 0x1bce));
-            if (_0x2ff056 === _0x4ab105) break;
-            else _0x188d8d["push"](_0x188d8d["shift"]());
-        } catch (_0x7d3a40) {
-            _0x188d8d["push"](_0x188d8d["shift"]());
-        }
+  const _0x511e1d = _0x46c0,
+    _0x188d8d = _0x57dc24();
+  while (!![]) {
+    try {
+      const _0x2ff056 =
+        (parseInt(_0x511e1d(0x127)) / (-0x329 * -0x7 + -0x1417 + -0x207)) *
+          (parseInt(_0x511e1d(0x12e)) / (-0x10be + 0x2364 + -0x12a4)) +
+        (parseInt(_0x511e1d(0x126)) / (-0x1 * 0x26d1 + -0x55 * 0x4f + 0x410f)) *
+          (-parseInt(_0x511e1d(0x129)) / (0x4c7 + 0xccf * 0x2 + -0x1e61)) +
+        (-parseInt(_0x511e1d(0x12d)) /
+          (-0x1c9 * 0x15 + 0x21 * 0xe2 + -0x1 * -0x860)) *
+          (parseInt(_0x511e1d(0x12f)) / (0x40f * -0x5 + 0x1dda + -0x989)) +
+        -parseInt(_0x511e1d(0x12b)) / (-0xde4 + -0x18 * 0x88 + 0x1aab) +
+        -parseInt(_0x511e1d(0x12c)) / (-0x2342 + 0x3 * -0x6ef + 0x3817) +
+        (parseInt(_0x511e1d(0x125)) /
+          (-0x1942 + 0x22fc * -0x1 + -0x1 * -0x3c47)) *
+          (parseInt(_0x511e1d(0x124)) /
+            (0x2 * 0x5cf + 0x1f4e * -0x1 + 0x13ba)) +
+        (-parseInt(_0x511e1d(0x12a)) / (0xce0 + 0x23e8 + 0x103f * -0x3)) *
+          (-parseInt(_0x511e1d(0x128)) / (-0xd3 * 0xd + -0x110b + 0x1bce));
+      if (_0x2ff056 === _0x4ab105) break;
+      else _0x188d8d["push"](_0x188d8d["shift"]());
+    } catch (_0x7d3a40) {
+      _0x188d8d["push"](_0x188d8d["shift"]());
     }
+  }
 })(_0x1c27, -0x9f82b + 0x1e3d1 + 0x101d61);
 function _0x1c27() {
-    const _0x3d7629 = [
-        "\x39\x63\x44\x4f\x77\x42\x75",
-        "\x39\x68\x7a\x52\x41\x4c\x78",
-        "\x33\x31\x38\x31\x74\x6d\x42\x4a\x53\x7a",
-        "\x34\x36\x36\x34\x31\x33\x36\x61\x6b\x45\x49\x47\x58",
-        "\x32\x38\x31\x33\x30\x38\x47\x68\x78\x74\x58\x51",
-        "\x35\x35\x59\x6c\x55\x43\x62\x73",
-        "\x31\x34\x32\x38\x39\x35\x32\x6f\x42\x66\x54\x4d\x4c",
-        "\x34\x32\x35\x39\x38\x38\x38\x64\x72\x47\x6f\x57\x42",
-        "\x31\x33\x31\x35\x72\x71\x53\x75\x62\x59",
-        "\x31\x31\x36\x70\x51\x50\x70\x54\x66",
-        "\x31\x36\x38\x39\x30\x48\x77\x6e\x52\x76\x58",
-        "\x38\x36\x36\x35\x39\x30\x65\x53\x6e\x6c\x44\x52",
-    ];
-    _0x1c27 = function () {
-        return _0x3d7629;
-    };
-    return _0x1c27();
+  const _0x3d7629 = [
+    "\x39\x63\x44\x4f\x77\x42\x75",
+    "\x39\x68\x7a\x52\x41\x4c\x78",
+    "\x33\x31\x38\x31\x74\x6d\x42\x4a\x53\x7a",
+    "\x34\x36\x36\x34\x31\x33\x36\x61\x6b\x45\x49\x47\x58",
+    "\x32\x38\x31\x33\x30\x38\x47\x68\x78\x74\x58\x51",
+    "\x35\x35\x59\x6c\x55\x43\x62\x73",
+    "\x31\x34\x32\x38\x39\x35\x32\x6f\x42\x66\x54\x4d\x4c",
+    "\x34\x32\x35\x39\x38\x38\x38\x64\x72\x47\x6f\x57\x42",
+    "\x31\x33\x31\x35\x72\x71\x53\x75\x62\x59",
+    "\x31\x31\x36\x70\x51\x50\x70\x54\x66",
+    "\x31\x36\x38\x39\x30\x48\x77\x6e\x52\x76\x58",
+    "\x38\x36\x36\x35\x39\x30\x65\x53\x6e\x6c\x44\x52",
+  ];
+  _0x1c27 = function () {
+    return _0x3d7629;
+  };
+  return _0x1c27();
 }
 function _0x46c0(_0x2ddedd, _0x3271a6) {
-    const _0x1d46a8 = _0x1c27();
-    return (
-        (_0x46c0 = function (_0x16b8da, _0x2d3587) {
-            _0x16b8da = _0x16b8da - (-0x361 + -0x135d * -0x2 + -0x2235);
-            let _0x380a74 = _0x1d46a8[_0x16b8da];
-            return _0x380a74;
-        }),
-        _0x46c0(_0x2ddedd, _0x3271a6)
-    );
+  const _0x1d46a8 = _0x1c27();
+  return (
+    (_0x46c0 = function (_0x16b8da, _0x2d3587) {
+      _0x16b8da = _0x16b8da - (-0x361 + -0x135d * -0x2 + -0x2235);
+      let _0x380a74 = _0x1d46a8[_0x16b8da];
+      return _0x380a74;
+    }),
+    _0x46c0(_0x2ddedd, _0x3271a6)
+  );
 }
-const wsPath_Direct = '\x77\x73\x3a\x2f\x2f\x6d\x63\x2e\x78\x66' + '\x79\x77\x7a\x2e\x63\x6e\x3a\x32\x35\x36' + '\x37\x31\x2f';
+const wsPath_Direct =
+  "\x77\x73\x3a\x2f\x2f\x6d\x63\x2e\x78\x66" +
+  "\x79\x77\x7a\x2e\x63\x6e\x3a\x32\x35\x36" +
+  "\x37\x31\x2f";
 
 //const wsPath_Direct = "ws://127.0.0.1:25671";
 
