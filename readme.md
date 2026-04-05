@@ -89,13 +89,16 @@
 		"game": "<{name}> {msg}", // 服内消息转发到群内时的文本
 		"group": "群:<{nick}> {msg}", //群内消息转发到服内时的文本
 		"post_chat": true, //是否在群内发送消息到服务器内
-		"post_prefix": "" //群内消息转发到服内时的前缀
+		"post_prefix": "", //群内消息转发到服内时的前缀
+		"max_length": 64, //群内消息转发到服内时的最大长度
+		"markdown": true //是否启用群消息 Markdown 模式
 	},
 	"motd": {
 		"server_ip": "play.easecation.net", //使用/查在线的时候显示的图片地址（改成你自己的进服IP）
 		"server_port": 19132, //使用/查在线的时候显示的图片地址（改成你自己的进服端口）
 		"api": "https://motdbe.blackbe.work/status_img?host={server_ip}:{server_port}", //使用"/查在线"时的Motd图片地址Api（无特殊需求勿动）（必须返回图片）
 		"text": "共{online}人在线", //使用"/查在线"时的Motd文本，留空不显示
+		"markdown": true, //是否以 Markdown 模式返回在线玩家列表
 		"output_online_list": true, //是否显示在线列表
 		"post_img": true //是否显示Motd图片
 	},
@@ -111,7 +114,9 @@
 			"permission": 1
 		}
 	],
-	"version": 2
+	"callbackConvertImg": 0, //回调消息图片转换方式
+	"connectMethod": 1, //0为同步连接，1为异步连接
+	"version": 7
 }
 
 ```
@@ -272,4 +277,3 @@ mc.listen("onServerStarted",()=>{
 ## 🤝 参与贡献
 
 欢迎提交PR或通过[Discussions](https://github.com/HuHoBot/BDSAdapter/discussions)提出建议
-

@@ -15,6 +15,7 @@
 		"server_port": 19132,
 		"api": "https://motdbe.blackbe.work/status_img?host={server_ip}:{server_port}",
 		"text": "共{online}人在线",
+		"markdown": true,
 		"output_online_list": true,
 		"post_img": true
 	},
@@ -32,5 +33,5 @@
 	],
 	"callbackConvertImg":0,
 	"connectMethod": 1,
-	"version": 6
+	"version": 7
 }

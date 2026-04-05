@@ -4,8 +4,8 @@
 const UPDATEURL =
   "https://release.huhobot.txssb.cn/lse/HuHoBot-BDS-{VERSION}.js";
 const LATESTURL = "https://release.huhobot.txssb.cn/lse/latest.json";
-const VERSION = "0.3.3";
-const CONFIG_VERSION = 6;
+const VERSION = "0.3.4";
+const CONFIG_VERSION = 7;
 const PLUGINNAME = "HuHoBot";
 const PATH = `plugins/${PLUGINNAME}/`;
 const CONFIGPATH = `${PATH}config.json`;
@@ -99,6 +99,117 @@ function filterByKeyword(array, keyword, caseInsensitive = true) {
       return item.includes(keyword);
     }
   });
+}
+
+/**
+ * 为当前支持的配置结构补齐缺失字段
+ * @param {Object} rawConfig
+ * @returns {{config: Object, changedFields: string[]}}
+ */
+function applyConfigDefaults(rawConfig) {
+  const config = { ...(rawConfig || {}) };
+  const changedFields = [];
+  const motd =
+    config.motd != null &&
+    typeof config.motd === "object" &&
+    !Array.isArray(config.motd)
+      ? { ...config.motd }
+      : {};
+
+  if (config.connectMethod == null) {
+    config.connectMethod = 1;
+    changedFields.push("connectMethod");
+  }
+
+  if (
+    config.motd == null ||
+    typeof config.motd !== "object" ||
+    Array.isArray(config.motd)
+  ) {
+    changedFields.push("motd");
+  }
+
+  if (motd.markdown == null) {
+    motd.markdown = true;
+    changedFields.push("motd.markdown");
+  }
+
+  config.motd = motd;
+  return { config, changedFields };
+}
+
+/**
+ * 补齐当前配置缺失的受支持字段
+ * @returns {boolean} 是否写回了配置
+ */
+function repairCurrentConfig() {
+  const currentConfig = getConfig();
+  const { config, changedFields } = applyConfigDefaults(currentConfig);
+
+  if (changedFields.length === 0) {
+    return false;
+  }
+
+  config.version = currentConfig.version;
+  writeFile(CONFIGPATH, config);
+  getConfig(true);
+  logger.info(`已补齐缺失配置项: ${changedFields.join(", ")}`);
+  return true;
+}
+
+/**
+ * 获取在线玩家名称列表
+ * @param {Object} config
+ * @returns {string[]}
+ */
+function getOnlinePlayerNames(config) {
+  const onlinePlayers = mc.getOnlinePlayers();
+  const playerNames = [];
+
+  for (let i = 0; i < onlinePlayers.length; i++) {
+    let playerName = onlinePlayers[i].name;
+    if (
+      onlinePlayers[i].isSimulatedPlayer() &&
+      config.addSimulatedPlayerTip === true
+    ) {
+      playerName += "(假人)";
+    }
+    playerNames.push(playerName);
+  }
+
+  return playerNames;
+}
+
+/**
+ * 生成查询在线消息
+ * @param {string[]} playerNames
+ * @returns {string}
+ */
+function motdMsgBuilder(playerNames) {
+  const config = getConfig();
+  const motd = config.motd || {};
+  const useMarkdown = motd.markdown === true;
+  const outputOnlineList = motd.output_online_list === true;
+  const textTemplate = typeof motd.text === "string" ? motd.text : "";
+
+  if (useMarkdown) {
+    return playerNames.join(", ");
+  }
+
+  let result = "";
+  if (outputOnlineList) {
+    if (playerNames.length > 0) {
+      result += "\n在线玩家列表：\n";
+      for (let i = 0; i < playerNames.length; i++) {
+        result += playerNames[i] + "\n";
+      }
+    } else {
+      result += "\n当前没有在线玩家\n";
+    }
+  }
+
+  result += textTemplate.replace("{online}", playerNames.length.toString());
+  return result;
 }
 
 /**
@@ -762,41 +873,28 @@ class FWebsocketClient {
    */
   onQueryOnline(id, body) {
     let config = getConfig();
-
-    let server_ip = config.motd.server_ip;
-    let server_port = config.motd.server_port;
-    let api = config.motd.api;
-    let text = config.motd.text;
-    let output_online_list = config.motd.output_online_list;
-    let post_img = config.motd.post_img;
-
-    //拼接在线列表
-    let onlineNameString = "";
-    let online = mc.getOnlinePlayers();
-    if (output_online_list) {
-      for (let i = 0; i < online.length; i++) {
-        let simulated = "";
-        if (online[i].isSimulatedPlayer() && config.addSimulatedPlayerTip) {
-          simulated = "(假人)";
-        }
-        onlineNameString += online[i].name + simulated;
-        onlineNameString += "\u200B";
-      }
-    }
-    text = text.replace("{online}", online.length);
-    onlineNameString += text;
+    let motd = config.motd || {};
+    let server_ip = motd.server_ip;
+    let server_port = motd.server_port;
+    let api = motd.api;
+    let post_img = motd.post_img;
+    let playerNames = getOnlinePlayerNames(config);
+    let useMarkdown = motd.markdown === true;
 
     this._sendMsg(
       "queryOnline",
       {
         list: {
-          msg: onlineNameString,
+          msg: motdMsgBuilder(playerNames),
           url: `${server_ip}:${server_port}`,
           imgUrl: api
             .replace("{server_ip}", server_ip)
             .replace("{server_port}", server_port),
           post_img: post_img,
           serverType: "bedrock",
+          useMarkdown: useMarkdown,
+          serverName: config.serverName,
+          currentOnline: playerNames.length.toString(),
         },
       },
       id,
@@ -945,11 +1043,8 @@ function convertConfig() {
     logger.info(`配置文件已备份为 config_v${oldConfigVersion}_backup.json`);
 
     // 创建新配置结构
-    const newConfig = {
-      ...oldConfig,
-      connectMethod: 1, // 新增连接方法字段，默认为异步连接
-      version: CONFIG_VERSION,
-    };
+    const { config: newConfig } = applyConfigDefaults(oldConfig);
+    newConfig.version = CONFIG_VERSION;
 
     // 写入新配置
     writeFile(CONFIGPATH, newConfig);
@@ -1006,6 +1101,8 @@ function initPlugin() {
   } else if (config.version == CONFIG_VERSION - 1) {
     logger.info("配置文件版本过低，正在升级...");
     convertConfig();
+  } else if (config.version == CONFIG_VERSION) {
+    repairCurrentConfig();
   }
 
   //检测serverId是否生成
