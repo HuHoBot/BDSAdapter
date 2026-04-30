@@ -13,9 +13,10 @@
 	"motd": {
 		"server_ip": "play.easecation.net",
 		"server_port": 19132,
-		"api": "https://motdbe.blackbe.work/status_img?host={server_ip}:{server_port}",
+		"api": "http://motd.txssb.cn/api/app_img?ip={server_ip}&port={server_port}&dark=true",
 		"text": "共{online}人在线",
 		"markdown": true,
+		"customMarkdown": false,
 		"output_online_list": true,
 		"post_img": true
 	},
@@ -33,5 +34,5 @@
 	],
 	"callbackConvertImg":0,
 	"connectMethod": 1,
-	"version": 7
+	"version": 8
 }

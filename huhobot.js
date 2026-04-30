@@ -4,11 +4,12 @@
 const UPDATEURL =
   "https://release.huhobot.txssb.cn/lse/HuHoBot-BDS-{VERSION}.js";
 const LATESTURL = "https://release.huhobot.txssb.cn/lse/latest.json";
-const VERSION = "0.3.4";
-const CONFIG_VERSION = 7;
+const VERSION = "0.3.5";
+const CONFIG_VERSION = 8;
 const PLUGINNAME = "HuHoBot";
 const PATH = `plugins/${PLUGINNAME}/`;
 const CONFIGPATH = `${PATH}config.json`;
+const CUSTOM_MARKDOWN_PATH = `${PATH}online.md`;
 const BLOCKPATH = `${PATH}blockMsg.json`;
 const BDSALLOWLISTPATH = "allowlist.json";
 const RECONNECT_INTERVAL = 5000;
@@ -134,6 +135,11 @@ function applyConfigDefaults(rawConfig) {
     changedFields.push("motd.markdown");
   }
 
+  if (motd.customMarkdown == null) {
+    motd.customMarkdown = false;
+    changedFields.push("motd.customMarkdown");
+  }
+
   config.motd = motd;
   return { config, changedFields };
 }
@@ -210,6 +216,23 @@ function motdMsgBuilder(playerNames) {
 
   result += textTemplate.replace("{online}", playerNames.length.toString());
   return result;
+}
+
+/**
+ * 读取自定义在线 Markdown 内容
+ * @returns {string}
+ */
+function readCustomMarkdown() {
+  try {
+    const content = File.readFrom(CUSTOM_MARKDOWN_PATH);
+    if (typeof content !== "string") {
+      throw new Error("online.md read result is not string");
+    }
+    return content;
+  } catch (_) {
+    logger.warn("无法读取online.md，请检查文件是否存在（该文件需要手动创建）。");
+    return "";
+  }
 }
 
 /**
@@ -880,22 +903,27 @@ class FWebsocketClient {
     let post_img = motd.post_img;
     let playerNames = getOnlinePlayerNames(config);
     let useMarkdown = motd.markdown === true;
+    let list = {
+      msg: motdMsgBuilder(playerNames),
+      url: `${server_ip}:${server_port}`,
+      imgUrl: api
+        .replace("{server_ip}", server_ip)
+        .replace("{server_port}", server_port),
+      post_img: post_img,
+      serverType: "bedrock",
+      useMarkdown: useMarkdown,
+      serverName: config.serverName,
+      currentOnline: playerNames.length.toString(),
+    };
+
+    if (motd.customMarkdown === true) {
+      list.customMarkdown = readCustomMarkdown();
+    }
 
     this._sendMsg(
       "queryOnline",
       {
-        list: {
-          msg: motdMsgBuilder(playerNames),
-          url: `${server_ip}:${server_port}`,
-          imgUrl: api
-            .replace("{server_ip}", server_ip)
-            .replace("{server_port}", server_port),
-          post_img: post_img,
-          serverType: "bedrock",
-          useMarkdown: useMarkdown,
-          serverName: config.serverName,
-          currentOnline: playerNames.length.toString(),
-        },
+        list: list,
       },
       id,
     );
