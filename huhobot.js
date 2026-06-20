@@ -4,7 +4,7 @@
 const UPDATEURL =
   "https://release.huhobot.txssb.cn/lse/HuHoBot-BDS-{VERSION}.js";
 const LATESTURL = "https://release.huhobot.txssb.cn/lse/latest.json";
-const VERSION = "0.3.5";
+const VERSION = "0.3.6";
 const CONFIG_VERSION = 8;
 const PLUGINNAME = "HuHoBot";
 const PATH = `plugins/${PLUGINNAME}/`;
@@ -230,7 +230,9 @@ function readCustomMarkdown() {
     }
     return content;
   } catch (_) {
-    logger.warn("无法读取online.md，请检查文件是否存在（该文件需要手动创建）。");
+    logger.warn(
+      "无法读取online.md，请检查文件是否存在（该文件需要手动创建）。",
+    );
     return "";
   }
 }
@@ -259,6 +261,21 @@ function regCallbackEvent(callType, keyWord, nameSpace, funcName) {
     `注册${callType}类型事件: 关键词(${keyWord}) 回调函数(${nameSpace}::${funcName}) 成功`,
   );
   return true;
+}
+
+/**
+ * 发送一条自定义消息
+ * @param {string} msg 消息内容
+ * @param {string} msgType 消息类型（默认为"聊天"）
+ */
+
+function postCustomMsg(msg, msgType = "聊天") {
+  if (WebsocketObject) {
+    WebsocketObject._postChat(msg, msgType);
+    return true;
+  }
+  logger.warn("服务端链接未初始化，无法发送消息");
+  return false;
 }
 
 class FWebsocketClient {
@@ -613,11 +630,12 @@ class FWebsocketClient {
    * 回复消息
    * @param {string} msg
    */
-  _postChat(msg) {
+  _postChat(msg, msgType = "聊天") {
     let serverId = getConfig().serverId;
     this._sendMsg("chat", {
       serverId: serverId,
       msg: msg,
+      msgType: msgType,
     });
   }
 
@@ -1142,6 +1160,8 @@ function initPlugin() {
   }
 
   ll.exports(regCallbackEvent, PLUGINNAME, "regEvent");
+  ll.exports(postCustomMsg, PLUGINNAME, "postMsg");
+
   mc.listen("onServerStarted", () => {
     let ws = initWebsocketServer();
     WebsocketObject = ws;
