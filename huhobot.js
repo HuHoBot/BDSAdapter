@@ -4,7 +4,7 @@
 const UPDATEURL =
   "https://release.huhobot.txssb.cn/lse/HuHoBot-BDS-{VERSION}.js";
 const LATESTURL = "https://release.huhobot.txssb.cn/lse/latest.json";
-const VERSION = "0.3.6";
+const VERSION = "0.3.7";
 const CONFIG_VERSION = 8;
 const PLUGINNAME = "HuHoBot";
 const PATH = `plugins/${PLUGINNAME}/`;
@@ -36,6 +36,7 @@ function getConfig(forceReload = false) {
 let callbackEvent = {
   run: {},
   runAdmin: {},
+  inline: {},
 };
 
 logger.setTitle(PLUGINNAME);
@@ -239,28 +240,53 @@ function readCustomMarkdown() {
 
 /**
  * 注册一个回调事件
- * @param {"run"|"runAdmin"} callType
+ * @param {"run"|"runAdmin"|"inline"} callType
  * @param {string} keyWord
  * @param {string} nameSpace
  * @param {string} funcName
  * @returns boolean 是否注册成功
  */
 function regCallbackEvent(callType, keyWord, nameSpace, funcName) {
+  if (typeof keyWord !== "string") {
+    return false;
+  }
+  if (keyWord.startsWith("#")) {
+    callType = "inline";
+  }
+  if (!(callType in callbackEvent)) {
+    return false;
+  }
   if (!ll.hasExported(nameSpace, funcName)) {
     return false;
   }
   let func = ll.imports(nameSpace, funcName);
-  if (!(callType in callbackEvent)) {
-    return false;
+  if (callType == "inline") {
+    if (!(keyWord in callbackEvent.inline)) {
+      callbackEvent.inline[keyWord] = [];
+    }
+    callbackEvent.inline[keyWord].push(func);
+  } else {
+    if (keyWord in callbackEvent[callType]) {
+      return false;
+    }
+    callbackEvent[callType][keyWord] = func;
   }
-  if (keyWord in callbackEvent[callType]) {
-    return false;
-  }
-  callbackEvent[callType][keyWord] = func;
   logger.info(
     `注册${callType}类型事件: 关键词(${keyWord}) 回调函数(${nameSpace}::${funcName}) 成功`,
   );
   return true;
+}
+
+/**
+ * 调用指定内置事件下注册的全部回调
+ * @param {string} keyWord
+ * @param {object} body
+ */
+function callInlineEvent(keyWord, body) {
+  let callbacks = callbackEvent.inline[keyWord] || [];
+  for (let i = 0; i < callbacks.length; i++) {
+    callbacks[i](body);
+  }
 }
 
 /**
@@ -565,6 +591,9 @@ class FWebsocketClient {
         case "bindRequest":
           this.onBindRequest(header.id, body, header.type);
           break;
+        case "groupMember":
+          this.onGroupMember(header.id, body);
+          break;
       }
     } catch (e) {
       logger.error(`在处理消息是遇到错误: ${e.stack}`);
@@ -656,6 +685,24 @@ class FWebsocketClient {
       `收到一个新的绑定请求，如确认绑定，请输入"/huhobot bind ${bindCode}"来进行确认`,
     );
     this.bindMap[bindCode] = id;
+  }
+
+  /**
+   * 群成员变更事件
+   * @param {string} id
+   * @param {{action:"add"|"remove",groupId:string,memberId:string,nick:string,bind_qq:string}} body
+   */
+  onGroupMember(id, body) {
+    let keyWord;
+    if (body.action == "add") {
+      keyWord = "#MemberAdd";
+    } else if (body.action == "remove") {
+      keyWord = "#MemberRemove";
+    } else {
+      logger.warn(`未知的群成员变更类型: ${body.action}`);
+      return;
+    }
+    callInlineEvent(keyWord, body);
   }
 
   /**

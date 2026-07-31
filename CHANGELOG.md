@@ -1,3 +1,3 @@
-# HuHoBot-BDS-Adapter v0.3.6
+# HuHoBot-BDS-Adapter v0.3.7
 
-feat(huhobot): 添加自定义消息发送功能
+feat(core): 添加群成员进退群事件
