@@ -2,8 +2,8 @@
 /// <reference path="E:\\MCServer\\HelperLib\\src\\index.d.ts"/>
 
 const UPDATEURL =
-  "https://release.huhobot.txssb.cn/lse/HuHoBot-BDS-{VERSION}.js";
-const LATESTURL = "https://release.huhobot.txssb.cn/lse/latest.json";
+  "https://huhobot.release.txssb.cn/lse/HuHoBot-BDS-{VERSION}.js";
+const LATESTURL = "https://huhobot.release.txssb.cn/lse/latest.json";
 const VERSION = "0.3.7";
 const CONFIG_VERSION = 8;
 const PLUGINNAME = "HuHoBot";
